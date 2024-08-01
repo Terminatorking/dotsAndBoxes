@@ -18,7 +18,7 @@ public class MainActivity extends AppCompatActivity {
         Button btn_restart = findViewById(R.id.btn_restart);
         GameView gameView = findViewById(R.id.GameView);
         btn_restart.setOnClickListener(view -> {
-            gameView.restartGame();
+            gameView.resetGame();
         });
     }
 }

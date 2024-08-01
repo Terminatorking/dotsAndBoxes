@@ -1,4 +1,4 @@
-package com.soheil.dotsandboxes;
+package com.soheil.dotsandboxes.classes;
 
 import android.app.Application;
 import android.content.Context;
