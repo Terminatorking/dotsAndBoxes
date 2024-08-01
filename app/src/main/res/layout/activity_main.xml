@@ -6,9 +6,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".activities.MainActivity">
 
-    <com.soheil.dotsandboxes.GameView
+    <Button
+        android:id="@+id/btn_restart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="RestartGame" />
+
+    <com.soheil.dotsandboxes.views.GameView
+        android:id="@+id/GameView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 </LinearLayout>
