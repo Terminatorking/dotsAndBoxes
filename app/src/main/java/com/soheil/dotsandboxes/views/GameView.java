@@ -14,11 +14,21 @@ import androidx.annotation.Nullable;
 import com.soheil.dotsandboxes.R;
 import com.soheil.dotsandboxes.classes.G;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-
+@SuppressWarnings("all")
 public class GameView extends View {
 
     private Paint paintBox;
@@ -45,8 +55,8 @@ public class GameView extends View {
     private static final int EDGE_TOP = 2;
     private static final int EDGE_BOTTOM = 3;
 
-
     private static ArrayList<Move> availableMoves = new ArrayList<>();
+
 
     private static class Theme {
         private static int[] playerColors = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
@@ -61,7 +71,7 @@ public class GameView extends View {
 
         private static boolean isGameOver = false;
         private static boolean isSide1 = true;
-        private static ArrayList<Line> lines = new ArrayList<>();
+        private static ArrayList<Action> actions = new ArrayList<>();
         private static ArrayList<Box> boxes = new ArrayList<>();
     }
 
@@ -74,7 +84,7 @@ public class GameView extends View {
         private static int rows = 4;
 
         private static String[] playerNames = new String[]{"Player 1", "Player 2"};
-        private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_CPU};
+        private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
         //private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
     }
 
@@ -131,14 +141,14 @@ public class GameView extends View {
     }
 
 
-    private static class Line {
+    private static class Action {
         public int i1;
         public int j1;
         public int i2;
         public int j2;
         public int playerIndex;
 
-        public Line(int i1, int j1, int i2, int j2, int playerIndex) {
+        public Action(int i1, int j1, int i2, int j2, int playerIndex) {
             this.i1 = i1;
             this.j1 = j1;
             this.i2 = i2;
@@ -227,7 +237,7 @@ public class GameView extends View {
         boxHeight = (Options.rows - 1) * Theme.space;
 
         screenWidth = G.screenWidth;
-        screenHeight =G.screenHeight;
+        screenHeight = G.screenHeight;
 
         screenWidthHalf = screenWidth / 2;
 
@@ -245,7 +255,7 @@ public class GameView extends View {
 
         State.isGameOver = false;
 
-        State.lines.clear();
+        State.actions.clear();
         State.boxes.clear();
 
         populateMoves();
@@ -258,18 +268,41 @@ public class GameView extends View {
     }
 
 
+    private void addToAvailableMoves(int i1, int j1, int i2, int j2) {
+        boolean isInAction = false;
+        for (Action action : State.actions) {
+            if (action.i1 == i1 && action.j1 == j1 && action.i2 == i2 && action.j2 == j2) {
+                isInAction = true;
+                break;
+            }
+        }
+
+        if (!isInAction) {
+            availableMoves.add(new Move(i1, j1, i2, j2));
+        }
+    }
+
     private void populateMoves() {
         availableMoves.clear();
 
         for (int i = 0; i < Options.cols - 1; i++) {
             for (int j = 0; j < Options.rows; j++) {
-                availableMoves.add(new Move(i, j, i + 1, j));
+                int i1 = i;
+                int j1 = j;
+                int i2 = i + 1;
+                int j2 = j;
+                addToAvailableMoves(i1, j1, i2, j2);
             }
         }
 
         for (int i = 0; i < Options.cols; i++) {
             for (int j = 0; j < Options.rows - 1; j++) {
-                availableMoves.add(new Move(i, j, i, j + 1));
+                int i1 = i;
+                int j1 = j;
+                int i2 = i;
+                int j2 = j + 1;
+
+                addToAvailableMoves(i1, j1, i2, j2);
             }
         }
     }
@@ -281,6 +314,111 @@ public class GameView extends View {
         }
 
         invalidate();
+    }
+
+
+    public void saveGame() {
+        JSONObject save = new JSONObject();
+        JSONObject options = new JSONObject();
+        JSONObject state = new JSONObject();
+        JSONArray actions = new JSONArray();
+        try {
+            options.put("cols", Options.cols);
+            options.put("rows", Options.rows);
+            options.put("opponentType", getPlayerType(2));
+            save.put("options", options);
+
+            state.put("playerIndex", getPlayerIndex());
+            state.put("actions", actions);
+
+            for (Action action : State.actions) {
+                JSONObject jsonAction = new JSONObject();
+                jsonAction.put("i1", action.i1);
+                jsonAction.put("j1", action.j1);
+                jsonAction.put("i2", action.i2);
+                jsonAction.put("j2", action.j2);
+                jsonAction.put("playerIndex", action.playerIndex);
+
+                actions.put(jsonAction);
+            }
+
+            save.put("state", state);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        String savedGame = save.toString();
+
+        File file = new File(G.APP_DIR + "/save.dat");
+
+        try {
+            file.createNewFile();
+            FileOutputStream fOut = new FileOutputStream(file);
+            OutputStreamWriter myOutWriter = new OutputStreamWriter(fOut);
+            myOutWriter.append(savedGame);
+
+            myOutWriter.close();
+
+            fOut.flush();
+            fOut.close();
+        } catch (IOException e) {
+            Log.e("Exception", "File write failed: " + e.toString());
+        }
+    }
+
+
+    public void loadGame() {
+        File file = new File(G.APP_DIR + "/save.dat");
+        StringBuilder savedGameBuilder = new StringBuilder();
+
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                savedGameBuilder.append(line);
+                savedGameBuilder.append('\n');
+            }
+            br.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String savedGame = savedGameBuilder.toString();
+
+        try {
+            JSONObject save = new JSONObject(savedGame);
+            JSONObject options = save.getJSONObject("options");
+
+            Options.cols = options.getInt("cols");
+            Options.rows = options.getInt("rows");
+            int opponentType = options.getInt("opponentType");
+            Options.playerTypes[1] = opponentType;
+
+            resetGame();
+
+            JSONObject state = save.getJSONObject("state");
+            int playerIndex = state.getInt("playerIndex");
+            State.isSide1 = playerIndex == 1;
+
+            JSONArray actions = state.getJSONArray("actions");
+            for (int i = 0; i < actions.length(); i++) {
+                JSONObject jsonAction = actions.getJSONObject(i);
+                State.actions.add(new Action(
+                        jsonAction.getInt("i1"),
+                        jsonAction.getInt("j1"),
+                        jsonAction.getInt("i2"),
+                        jsonAction.getInt("j2"),
+                        jsonAction.getInt("playerIndex")
+                ));
+            }
+
+            populateMoves();
+
+            invalidate();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -365,13 +503,13 @@ public class GameView extends View {
 
 
     private void drawConnectedLines(Canvas canvas) {
-        for (Line line : State.lines) {
+        for (Action line : State.actions) {
             drawLine(canvas, line);
         }
     }
 
 
-    private void drawLine(Canvas canvas, Line line) {
+    private void drawLine(Canvas canvas, Action line) {
         Position p1 = getPointPoisition(line.i1, line.j1);
         Position p2 = getPointPoisition(line.i2, line.j2);
         paintLine.setColor(getPlayerColor(line.playerIndex));
@@ -552,15 +690,15 @@ public class GameView extends View {
         }
 
         // if this line is already connected
-        for (Line line : State.lines) {
+        for (Action line : State.actions) {
             if (line.i1 == firstPoint.i && line.j1 == firstPoint.j && line.i2 == secondPoint.i && line.j2 == secondPoint.j) {
                 return false;
             }
         }
 
-        // add line to list of connected lines
-        Line line = new Line(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j, getPlayerIndex());
-        State.lines.add(line);
+        // add line to list of connected actions
+        Action line = new Action(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j, getPlayerIndex());
+        State.actions.add(line);
 
         for (int index = availableMoves.size() - 1; index >= 0; index--) {
             Move move = availableMoves.get(index);
@@ -705,9 +843,9 @@ public class GameView extends View {
     private boolean makeRandomSafeMove(ArrayList<Move> unsafeMoves) {
         ArrayList<Move> safeMoves = new ArrayList<>();
 
-        for (Move move: availableMoves) {
+        for (Move move : availableMoves) {
             boolean isSafeMove = true;
-            for (Move testMove: unsafeMoves) {
+            for (Move testMove : unsafeMoves) {
                 if (testMove.i1 == move.i1 && testMove.i2 == move.i2 && testMove.j1 == move.j1 && testMove.j2 == move.j2) {
                     isSafeMove = false;
                     break;
@@ -815,7 +953,7 @@ public class GameView extends View {
 
 
     private boolean hasLeft(int i, int j) {
-        for (Line line : State.lines) {
+        for (Action line : State.actions) {
             if (line.i1 == i && line.j1 == j && line.i2 == i && line.j2 == j + 1) {
                 return true;
             }
@@ -826,7 +964,7 @@ public class GameView extends View {
 
 
     private boolean hasRight(int i, int j) {
-        for (Line line : State.lines) {
+        for (Action line : State.actions) {
             if (line.i1 == i + 1 && line.j1 == j && line.i2 == i + 1 && line.j2 == j + 1) {
                 return true;
             }
@@ -837,7 +975,7 @@ public class GameView extends View {
 
 
     private boolean hasTop(int i, int j) {
-        for (Line line : State.lines) {
+        for (Action line : State.actions) {
             if (line.i1 == i && line.j1 == j + 1 && line.i2 == i + 1 && line.j2 == j + 1) {
                 return true;
             }
@@ -848,7 +986,7 @@ public class GameView extends View {
 
 
     private boolean hasBottom(int i, int j) {
-        for (Line line : State.lines) {
+        for (Action line : State.actions) {
             if (line.i1 == i && line.j1 == j && line.i2 == i + 1 && line.j2 == j) {
                 return true;
             }
@@ -867,7 +1005,7 @@ public class GameView extends View {
         boolean hasTop = false;
         boolean hasBottom = false;
 
-        for (Line line : State.lines) {
+        for (Action line : State.actions) {
             hasLeft = hasLeft(i, j);
             hasRight = hasRight(i, j);
             hasTop = hasTop(i, j);
