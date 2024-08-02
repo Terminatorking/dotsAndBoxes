@@ -4,10 +4,11 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+
+import androidx.annotation.Nullable;
 
 import com.soheil.dotsandboxes.classes.G;
 
@@ -37,6 +38,10 @@ public class GameView extends View {
     private float touchX;
     private float touchY;
 
+    private static final int EDGE_LEFT = 0;
+    private static final int EDGE_RIGHT = 1;
+    private static final int EDGE_TOP = 2;
+    private static final int EDGE_BOTTOM = 3;
 
     private static class Theme {
         private static int[] playerColors = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
@@ -57,10 +62,15 @@ public class GameView extends View {
 
 
     private static class Options {
+        private static final int TYPE_CPU = 0;
+        private static final int TYPE_PLAYER = 1;
+
         private static int cols = 4;
         private static int rows = 4;
 
         private static String[] playerNames = new String[]{"Player 1", "Player 2"};
+        private static int[] playerTypes = new int[]{TYPE_CPU, TYPE_CPU};
+        //private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
     }
 
 
@@ -83,14 +93,23 @@ public class GameView extends View {
 
 
     private static class Diff {
-        public int i;
-        public int j;
+        public Point point;
         public Float diff;
 
-        public Diff(int i, int j, float diff) {
+        public Diff(Point point, float diff) {
+            this.point = point;
+            this.diff = diff;
+        }
+    }
+
+
+    private static class Point {
+        public int i;
+        public int j;
+
+        public Point(int i, int j) {
             this.i = i;
             this.j = j;
-            this.diff = diff;
         }
     }
 
@@ -130,13 +149,13 @@ public class GameView extends View {
     }
 
 
-    public GameView(Context context, AttributeSet attrs) {
+    public GameView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         initialize();
     }
 
 
-    public GameView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public GameView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         initialize();
     }
@@ -209,16 +228,25 @@ public class GameView extends View {
         State.lines.clear();
         State.boxes.clear();
 
+        if (isCpuTurn()) {
+            playNext();
+        }
+
         refresh();
     }
 
 
     private void refresh() {
-        if (State.boxes.size() == (Options.cols - 1) * (Options.rows - 1)) {
+        if (isGameFinished()) {
             State.isGameOver = true;
         }
 
         invalidate();
+    }
+
+
+    private boolean isGameFinished() {
+        return State.boxes.size() == (Options.cols - 1) * (Options.rows - 1);
     }
 
 
@@ -242,6 +270,11 @@ public class GameView extends View {
     }
 
 
+    private int getPlayerType(int playerIndex) {
+        return Options.playerTypes[playerIndex - 1];
+    }
+
+
     private void increasePlayerScore(int playerIndex) {
         State.playerScores[playerIndex - 1]++;
     }
@@ -249,6 +282,11 @@ public class GameView extends View {
 
     private String getPlayerName(int playerIndex) {
         return Options.playerNames[playerIndex - 1];
+    }
+
+
+    private boolean isCpuTurn() {
+        return getPlayerType(getPlayerIndex()) == Options.TYPE_CPU;
     }
 
 
@@ -274,7 +312,7 @@ public class GameView extends View {
     }
 
 
-    private Position getPointPoisition(int i, int j) {
+    private Position getPointPosition(int i, int j) {
         int x = offsetX + (i * Theme.space);
         int y = offsetY + ((Options.rows - 1 - j) * Theme.space);
 
@@ -295,8 +333,8 @@ public class GameView extends View {
 
 
     private void drawLine(Canvas canvas, Line line) {
-        Position p1 = getPointPoisition(line.i1, line.j1);
-        Position p2 = getPointPoisition(line.i2, line.j2);
+        Position p1 = getPointPosition(line.i1, line.j1);
+        Position p2 = getPointPosition(line.i2, line.j2);
         paintLine.setColor(getPlayerColor(line.playerIndex));
         canvas.drawLine(p1.x, p1.y, p2.x, p2.y, paintLine);
     }
@@ -305,7 +343,7 @@ public class GameView extends View {
     private void drawBoxes(Canvas canvas) {
         for (Box box : State.boxes) {
             paintBox.setColor(getPlayerColor(box.playerIndex));
-            Position boxPos = getPointPoisition(box.i, box.j);
+            Position boxPos = getPointPosition(box.i, box.j);
             canvas.drawCircle(boxPos.x + Theme.space / 2, boxPos.y - Theme.space / 2, 30, paintBox);
         }
     }
@@ -314,7 +352,7 @@ public class GameView extends View {
     private void drawDots(Canvas canvas) {
         for (int i = 0; i < Options.cols; i++) {
             for (int j = 0; j < Options.rows; j++) {
-                Position point = getPointPoisition(i, j);
+                Position point = getPointPosition(i, j);
                 canvas.drawCircle(point.x, point.y, Theme.radius, paintDot);
             }
         }
@@ -322,10 +360,19 @@ public class GameView extends View {
 
 
     private void drawPlayerScore(Canvas canvas, int playerIndex, int x, int y) {
+        if (playerIndex == getPlayerIndex()) {
+            paintBox.setColor(Color.WHITE);
+            canvas.drawCircle(x, y, 50, paintBox);
+        } else {
+            paintBox.setColor(Color.parseColor("#444444"));
+            canvas.drawCircle(x, y, 50, paintBox);
+        }
+
         paintBox.setColor(getPlayerColor(playerIndex));
         canvas.drawCircle(x, y, 40, paintBox);
         canvas.drawText("" + getPlayerScore(playerIndex), x, y + 10, paintText);
         canvas.drawText(getPlayerName(playerIndex), x, y + 80, paintText);
+
     }
 
 
@@ -357,7 +404,7 @@ public class GameView extends View {
         for (int i = 0; i < Options.cols; i++) {
             for (int j = 0; j < Options.rows; j++) {
                 String name = "" + i + "," + j;
-                Position point = getPointPoisition(i, j);
+                Position point = getPointPosition(i, j);
                 canvas.drawText(name, point.x, point.y + 50, paintText);
             }
         }
@@ -365,12 +412,11 @@ public class GameView extends View {
 
 
     private String getGameFinishMessage() {
-        String message = "";
+        String message;
         if (getPlayerScore(1) == getPlayerScore(2)) {
             message = "Game Draw";
         } else if (getPlayerScore(1) > getPlayerScore(2)) {
             message = "Player One Won";
-
         } else {
             message = "Player Two Won";
         }
@@ -385,10 +431,19 @@ public class GameView extends View {
             return true;
         }
 
+        if (isCpuTurn()) {
+            return true;
+        }
+
         touchX = event.getX();
         touchY = event.getY();
 
-        connectLine();
+        ArrayList<Diff> diffs = getDiffsByOrder();
+
+        Diff diff1 = diffs.get(0);
+        Diff diff2 = diffs.get(1);
+
+        connectLine(diff1.point, diff2.point);
         refresh();
 
         return super.onTouchEvent(event);
@@ -400,9 +455,9 @@ public class GameView extends View {
 
         for (int i = 0; i < Options.cols; i++) {
             for (int j = 0; j < Options.rows; j++) {
-                Position position = getPointPoisition(i, j);
+                Position position = getPointPosition(i, j);
                 float diff = computeDiff(touchX, touchY, position.x, position.y);
-                diffs.add(new Diff(i, j, diff));
+                diffs.add(new Diff(new Point(i, j), diff));
             }
         }
 
@@ -418,14 +473,9 @@ public class GameView extends View {
     }
 
 
-    private void connectLine() {
-        ArrayList<Diff> diffs = getDiffsByOrder();
-
-        Diff point1 = diffs.get(0);
-        Diff point2 = diffs.get(1);
-
-        Diff firstPoint;
-        Diff secondPoint;
+    private boolean connectLine(Point point1, Point point2) {
+        Point firstPoint;
+        Point secondPoint;
 
         Box box1;
         Box box2 = null;
@@ -465,7 +515,7 @@ public class GameView extends View {
         // if this line is already connected
         for (Line line : State.lines) {
             if (line.i1 == firstPoint.i && line.j1 == firstPoint.j && line.i2 == secondPoint.i && line.j2 == secondPoint.j) {
-                return;
+                return false;
             }
         }
 
@@ -481,12 +531,137 @@ public class GameView extends View {
             wonBox2 = checkBox(box2);
         }
 
-        boolean mustPlayerNextPlayer = !wonBox1 && !wonBox2;
+        boolean mustSwitchSide = !wonBox1 && !wonBox2;
 
         // if switching side required
-        if (mustPlayerNextPlayer) {
-            State.isSide1 = !State.isSide1;
+        if (mustSwitchSide) {
+            switchSide();
+            return true;
         }
+
+        playNext();
+        return true;
+    }
+
+
+    private void switchSide() {
+        State.isSide1 = !State.isSide1;
+        playNext();
+    }
+
+
+    private void playNext() {
+        if (isCpuTurn()) {
+            G.handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    ai();
+                    refresh();
+                }
+            }, 500);
+        }
+    }
+
+
+    private int getRandom(int min, int max) {
+        return (int) Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+
+    private void ai() {
+        if (isGameFinished()) {
+            return;
+        }
+
+        while (true) {
+            int i = getRandom(0, Options.cols - 2);
+            int j = getRandom(0, Options.rows - 2);
+
+            int side = getRandom(0, 3);
+            boolean connected = false;
+            switch (side) {
+                case EDGE_LEFT:
+                    connected = connectLeft(i, j);
+                    break;
+                case EDGE_RIGHT:
+                    connected = connectRight(i, j);
+                    break;
+                case EDGE_TOP:
+                    connected = connectTop(i, j);
+                    break;
+                case EDGE_BOTTOM:
+                    connected = connectBottom(i, j);
+                    break;
+            }
+
+            if (connected) {
+                break;
+            }
+        }
+    }
+
+
+    private boolean connectLeft(int i, int j) {
+        return connectLine(new Point(i, j), new Point(i, j + 1));
+    }
+
+
+    private boolean connectRight(int i, int j) {
+        return connectLine(new Point(i + 1, j), new Point(i + 1, j + 1));
+    }
+
+
+    private boolean connectTop(int i, int j) {
+        return connectLine(new Point(i, j + 1), new Point(i + 1, j + 1));
+    }
+
+
+    private boolean connectBottom(int i, int j) {
+        return connectLine(new Point(i, j), new Point(i + 1, j));
+    }
+
+
+    private boolean hasLeft(int i, int j) {
+        for (Line line : State.lines) {
+            if (line.i1 == i && line.j1 == j && line.i2 == i && line.j2 == j + 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    private boolean hasRight(int i, int j) {
+        for (Line line : State.lines) {
+            if (line.i1 == i + 1 && line.j1 == j && line.i2 == i + 1 && line.j2 == j + 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    private boolean hasTop(int i, int j) {
+        for (Line line : State.lines) {
+            if (line.i1 == i && line.j1 == j + 1 && line.i2 == i + 1 && line.j2 == j + 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    private boolean hasBottom(int i, int j) {
+        for (Line line : State.lines) {
+            if (line.i1 == i && line.j1 == j && line.i2 == i + 1 && line.j2 == j) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
@@ -500,21 +675,10 @@ public class GameView extends View {
         boolean hasBottom = false;
 
         for (Line line : State.lines) {
-            if (line.i1 == i && line.j1 == j && line.i2 == i && line.j2 == j + 1) {
-                hasLeft = true;
-            }
-
-            if (line.i1 == i + 1 && line.j1 == j && line.i2 == i + 1 && line.j2 == j + 1) {
-                hasRight = true;
-            }
-
-            if (line.i1 == i && line.j1 == j + 1 && line.i2 == i + 1 && line.j2 == j + 1) {
-                hasTop = true;
-            }
-
-            if (line.i1 == i && line.j1 == j && line.i2 == i + 1 && line.j2 == j) {
-                hasBottom = true;
-            }
+            hasLeft = hasLeft(i, j);
+            hasRight = hasRight(i, j);
+            hasTop = hasTop(i, j);
+            hasBottom = hasBottom(i, j);
         }
 
         boolean isFullConnected = hasLeft && hasRight && hasTop && hasBottom;
