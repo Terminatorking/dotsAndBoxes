@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -17,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-@SuppressWarnings("all")
+
 public class GameView extends View {
 
     private Paint paintBox;
@@ -69,11 +70,11 @@ public class GameView extends View {
         private static final int TYPE_CPU = 0;
         private static final int TYPE_PLAYER = 1;
 
-        private static int cols = 5;
+        private static int cols = 4;
         private static int rows = 4;
 
         private static String[] playerNames = new String[]{"Player 1", "Player 2"};
-        private static int[] playerTypes = new int[]{TYPE_CPU, TYPE_CPU};
+        private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_CPU};
         //private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
     }
 
@@ -226,7 +227,7 @@ public class GameView extends View {
         boxHeight = (Options.rows - 1) * Theme.space;
 
         screenWidth = G.screenWidth;
-        screenHeight = G.screenHeight;
+        screenHeight =G.screenHeight;
 
         screenWidthHalf = screenWidth / 2;
 
@@ -450,7 +451,7 @@ public class GameView extends View {
 
 
     private String getGameFinishMessage() {
-        String message ;
+        String message = "";
         if (getPlayerScore(1) == getPlayerScore(2)) {
             message = G.context.getString(R.string.gameDraw);
         } else if (getPlayerScore(1) > getPlayerScore(2)) {
@@ -619,15 +620,177 @@ public class GameView extends View {
             return;
         }
 
-        while (true) {
-            int moveIndex = getRandom(0, availableMoves.size() - 1);
-            Move move = availableMoves.get(moveIndex);
+        if (fill3sidesBoxes()) {
+            return;
+        }
 
-            boolean connected = connectLine(new Point(move.i1, move.j1), new Point(move.i2, move.j2));
-            if (connected) {
-                break;
+        ArrayList<Move> unsafeMoves = detectUnsafeMoves();
+
+        if (makeRandomSafeMove(unsafeMoves)) {
+            return;
+        }
+
+        makeRandomMove();
+    }
+
+
+    private ArrayList<Move> detectUnsafeMoves() {
+        ArrayList<Move> unsafeMoves = new ArrayList<>();
+
+        for (int i = 0; i <= Options.cols - 2; i++) {
+            for (int j = 0; j <= Options.rows - 2; j++) {
+                ArrayList<Integer> freeSides = new ArrayList<>();
+
+                if (hasLeft(i, j)) {
+                    freeSides.add(EDGE_LEFT);
+                }
+
+                if (hasRight(i, j)) {
+                    freeSides.add(EDGE_RIGHT);
+                }
+
+                if (hasTop(i, j)) {
+                    freeSides.add(EDGE_TOP);
+                }
+
+                if (hasBottom(i, j)) {
+                    freeSides.add(EDGE_BOTTOM);
+                }
+
+                if (freeSides.size() == 2) {
+                    Log.i("LOG", "Sides = 2");
+                    if (freeSides.contains(EDGE_LEFT) && freeSides.contains(EDGE_RIGHT)) {
+                        //top, bottom
+                        unsafeMoves.add(new Move(i, j + 1, i + 1, j + 1));
+                        unsafeMoves.add(new Move(i, j, i + 1, j));
+                    }
+
+                    if (freeSides.contains(EDGE_LEFT) && freeSides.contains(EDGE_TOP)) {
+                        //right, bottom
+                        unsafeMoves.add(new Move(i + 1, j, i + 1, j + 1));
+                        unsafeMoves.add(new Move(i, j, i + 1, j));
+                    }
+
+                    if (freeSides.contains(EDGE_LEFT) && freeSides.contains(EDGE_BOTTOM)) {
+                        //right, top
+                        unsafeMoves.add(new Move(i + 1, j, i + 1, j + 1));
+                        unsafeMoves.add(new Move(i, j + 1, i + 1, j + 1));
+                    }
+
+                    if (freeSides.contains(EDGE_RIGHT) && freeSides.contains(EDGE_TOP)) {
+                        //left, bottom.
+                        unsafeMoves.add(new Move(i, j, i, j + 1));
+                        unsafeMoves.add(new Move(i, j, i + 1, j));
+                    }
+
+                    if (freeSides.contains(EDGE_RIGHT) && freeSides.contains(EDGE_BOTTOM)) {
+                        //left, top
+                        unsafeMoves.add(new Move(i, j, i, j + 1));
+                        unsafeMoves.add(new Move(i, j + 1, i + 1, j + 1));
+                    }
+
+                    if (freeSides.contains(EDGE_TOP) && freeSides.contains(EDGE_BOTTOM)) {
+                        //left, right
+                        unsafeMoves.add(new Move(i, j, i, j + 1));
+                        unsafeMoves.add(new Move(i + 1, j, i + 1, j + 1));
+                    }
+                }
             }
         }
+
+        return unsafeMoves;
+    }
+
+
+    private boolean makeRandomSafeMove(ArrayList<Move> unsafeMoves) {
+        ArrayList<Move> safeMoves = new ArrayList<>();
+
+        for (Move move: availableMoves) {
+            boolean isSafeMove = true;
+            for (Move testMove: unsafeMoves) {
+                if (testMove.i1 == move.i1 && testMove.i2 == move.i2 && testMove.j1 == move.j1 && testMove.j2 == move.j2) {
+                    isSafeMove = false;
+                    break;
+                }
+            }
+
+            if (isSafeMove) {
+                safeMoves.add(move);
+            }
+        }
+
+        if (safeMoves.size() == 0) {
+            return false;
+        }
+
+        int moveIndex = getRandom(0, safeMoves.size() - 1);
+        Move move = safeMoves.get(moveIndex);
+
+        connectLine(new Point(move.i1, move.j1), new Point(move.i2, move.j2));
+        return true;
+    }
+
+
+    private boolean makeRandomMove() {
+        int moveIndex = getRandom(0, availableMoves.size() - 1);
+        Move move = availableMoves.get(moveIndex);
+        connectLine(new Point(move.i1, move.j1), new Point(move.i2, move.j2));
+
+        return true;
+    }
+
+
+    private boolean fill3sidesBoxes() {
+        for (int i = 0; i <= Options.cols - 2; i++) {
+            for (int j = 0; j <= Options.rows - 2; j++) {
+                int sides = 0;
+                int freeSide = -1;
+
+                if (hasBottom(i, j)) {
+                    sides++;
+                } else {
+                    freeSide = EDGE_BOTTOM;
+                }
+
+                if (hasRight(i, j)) {
+                    sides++;
+                } else {
+                    freeSide = EDGE_RIGHT;
+                }
+
+                if (hasLeft(i, j)) {
+                    sides++;
+                } else {
+                    freeSide = EDGE_LEFT;
+                }
+
+                if (hasTop(i, j)) {
+                    sides++;
+                } else {
+                    freeSide = EDGE_TOP;
+                }
+
+                if (sides == 3) {
+                    Log.i("LOG", "Found Sided = 3");
+                    switch (freeSide) {
+                        case EDGE_BOTTOM:
+                            connectBottom(i, j);
+                            return true;
+                        case EDGE_RIGHT:
+                            connectRight(i, j);
+                            return true;
+                        case EDGE_LEFT:
+                            connectLeft(i, j);
+                            return true;
+                        case EDGE_TOP:
+                            connectTop(i, j);
+                            return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
 
