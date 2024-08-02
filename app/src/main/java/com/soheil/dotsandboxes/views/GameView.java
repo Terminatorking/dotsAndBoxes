@@ -10,6 +10,7 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 
+import com.soheil.dotsandboxes.R;
 import com.soheil.dotsandboxes.classes.G;
 
 import java.util.ArrayList;
@@ -43,6 +44,9 @@ public class GameView extends View {
     private static final int EDGE_TOP = 2;
     private static final int EDGE_BOTTOM = 3;
 
+
+    private static ArrayList<Move> availableMoves = new ArrayList<>();
+
     private static class Theme {
         private static int[] playerColors = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
         private static int space = 150;
@@ -65,7 +69,7 @@ public class GameView extends View {
         private static final int TYPE_CPU = 0;
         private static final int TYPE_PLAYER = 1;
 
-        private static int cols = 4;
+        private static int cols = 5;
         private static int rows = 4;
 
         private static String[] playerNames = new String[]{"Player 1", "Player 2"};
@@ -139,6 +143,21 @@ public class GameView extends View {
             this.i2 = i2;
             this.j2 = j2;
             this.playerIndex = playerIndex;
+        }
+    }
+
+
+    private static class Move {
+        public int i1;
+        public int j1;
+        public int i2;
+        public int j2;
+
+        public Move(int i1, int j1, int i2, int j2) {
+            this.i1 = i1;
+            this.j1 = j1;
+            this.i2 = i2;
+            this.j2 = j2;
         }
     }
 
@@ -228,11 +247,30 @@ public class GameView extends View {
         State.lines.clear();
         State.boxes.clear();
 
+        populateMoves();
+
         if (isCpuTurn()) {
             playNext();
         }
 
         refresh();
+    }
+
+
+    private void populateMoves() {
+        availableMoves.clear();
+
+        for (int i = 0; i < Options.cols - 1; i++) {
+            for (int j = 0; j < Options.rows; j++) {
+                availableMoves.add(new Move(i, j, i + 1, j));
+            }
+        }
+
+        for (int i = 0; i < Options.cols; i++) {
+            for (int j = 0; j < Options.rows - 1; j++) {
+                availableMoves.add(new Move(i, j, i, j + 1));
+            }
+        }
     }
 
 
@@ -312,7 +350,7 @@ public class GameView extends View {
     }
 
 
-    private Position getPointPosition(int i, int j) {
+    private Position getPointPoisition(int i, int j) {
         int x = offsetX + (i * Theme.space);
         int y = offsetY + ((Options.rows - 1 - j) * Theme.space);
 
@@ -333,8 +371,8 @@ public class GameView extends View {
 
 
     private void drawLine(Canvas canvas, Line line) {
-        Position p1 = getPointPosition(line.i1, line.j1);
-        Position p2 = getPointPosition(line.i2, line.j2);
+        Position p1 = getPointPoisition(line.i1, line.j1);
+        Position p2 = getPointPoisition(line.i2, line.j2);
         paintLine.setColor(getPlayerColor(line.playerIndex));
         canvas.drawLine(p1.x, p1.y, p2.x, p2.y, paintLine);
     }
@@ -343,7 +381,7 @@ public class GameView extends View {
     private void drawBoxes(Canvas canvas) {
         for (Box box : State.boxes) {
             paintBox.setColor(getPlayerColor(box.playerIndex));
-            Position boxPos = getPointPosition(box.i, box.j);
+            Position boxPos = getPointPoisition(box.i, box.j);
             canvas.drawCircle(boxPos.x + Theme.space / 2, boxPos.y - Theme.space / 2, 30, paintBox);
         }
     }
@@ -352,7 +390,7 @@ public class GameView extends View {
     private void drawDots(Canvas canvas) {
         for (int i = 0; i < Options.cols; i++) {
             for (int j = 0; j < Options.rows; j++) {
-                Position point = getPointPosition(i, j);
+                Position point = getPointPoisition(i, j);
                 canvas.drawCircle(point.x, point.y, Theme.radius, paintDot);
             }
         }
@@ -404,7 +442,7 @@ public class GameView extends View {
         for (int i = 0; i < Options.cols; i++) {
             for (int j = 0; j < Options.rows; j++) {
                 String name = "" + i + "," + j;
-                Position point = getPointPosition(i, j);
+                Position point = getPointPoisition(i, j);
                 canvas.drawText(name, point.x, point.y + 50, paintText);
             }
         }
@@ -412,13 +450,13 @@ public class GameView extends View {
 
 
     private String getGameFinishMessage() {
-        String message;
+        String message ;
         if (getPlayerScore(1) == getPlayerScore(2)) {
-            message = "Game Draw";
+            message = G.context.getString(R.string.gameDraw);
         } else if (getPlayerScore(1) > getPlayerScore(2)) {
-            message = "Player One Won";
+            message = getPlayerName(1) + G.context.getString(R.string.playerWonGame);
         } else {
-            message = "Player Two Won";
+            message = getPlayerName(2) + G.context.getString(R.string.playerWonGame);
         }
 
         return message;
@@ -455,7 +493,7 @@ public class GameView extends View {
 
         for (int i = 0; i < Options.cols; i++) {
             for (int j = 0; j < Options.rows; j++) {
-                Position position = getPointPosition(i, j);
+                Position position = getPointPoisition(i, j);
                 float diff = computeDiff(touchX, touchY, position.x, position.y);
                 diffs.add(new Diff(new Point(i, j), diff));
             }
@@ -523,6 +561,14 @@ public class GameView extends View {
         Line line = new Line(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j, getPlayerIndex());
         State.lines.add(line);
 
+        for (int index = availableMoves.size() - 1; index >= 0; index--) {
+            Move move = availableMoves.get(index);
+            if (move.i1 == line.i1 && move.i2 == line.i2 && move.j1 == line.j1 && move.j2 == line.j2) {
+                availableMoves.remove(move);
+                break;
+            }
+        }
+
         // check if player get award
         boolean wonBox1 = checkBox(box1);
         boolean wonBox2 = false;
@@ -558,7 +604,7 @@ public class GameView extends View {
                     ai();
                     refresh();
                 }
-            }, 500);
+            }, 100);
         }
     }
 
@@ -574,26 +620,10 @@ public class GameView extends View {
         }
 
         while (true) {
-            int i = getRandom(0, Options.cols - 2);
-            int j = getRandom(0, Options.rows - 2);
+            int moveIndex = getRandom(0, availableMoves.size() - 1);
+            Move move = availableMoves.get(moveIndex);
 
-            int side = getRandom(0, 3);
-            boolean connected = false;
-            switch (side) {
-                case EDGE_LEFT:
-                    connected = connectLeft(i, j);
-                    break;
-                case EDGE_RIGHT:
-                    connected = connectRight(i, j);
-                    break;
-                case EDGE_TOP:
-                    connected = connectTop(i, j);
-                    break;
-                case EDGE_BOTTOM:
-                    connected = connectBottom(i, j);
-                    break;
-            }
-
+            boolean connected = connectLine(new Point(move.i1, move.j1), new Point(move.i2, move.j2));
             if (connected) {
                 break;
             }
