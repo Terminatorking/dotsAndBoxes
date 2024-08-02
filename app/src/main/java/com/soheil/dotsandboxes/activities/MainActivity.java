@@ -1,7 +1,6 @@
 package com.soheil.dotsandboxes.activities;
 
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,8 +16,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Button btn_restart = findViewById(R.id.btn_restart);
         GameView gameView = findViewById(R.id.GameView);
-        btn_restart.setOnClickListener(view -> {
-            gameView.resetGame();
-        });
+        btn_restart.setOnClickListener(view -> gameView.resetGame());
     }
 }
