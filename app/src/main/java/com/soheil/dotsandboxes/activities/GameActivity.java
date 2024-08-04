@@ -1,22 +1,16 @@
 package com.soheil.dotsandboxes.activities;
 
-import android.Manifest;
 import android.app.Dialog;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import com.soheil.dotsandboxes.R;
-import com.soheil.dotsandboxes.classes.G;
-import com.soheil.dotsandboxes.classes.OptionDialog;
-import com.soheil.dotsandboxes.views.GameView;
+
+import project.dialog.OptionDialog;
+import project.view.GameView;
 
 
 public class GameActivity extends AppCompatActivity {
@@ -35,19 +29,17 @@ public class GameActivity extends AppCompatActivity {
     ImageButton btn_option = (ImageButton) findViewById(R.id.btn_option);
     gameView = (GameView) findViewById(R.id.gameview);
 
-    requestWritePermission();
-
     btn_reset.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
-        gameView.resetGame(isMultiplayer);
+        gameView.startGame(isMultiplayer);
       }
     });
 
     btn_option.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
-        gameView.resetGame(isMultiplayer);
+        gameView.startGame(isMultiplayer);
         Dialog dialog = new OptionDialog(GameActivity.this);
         dialog.show();
       }
@@ -56,7 +48,7 @@ public class GameActivity extends AppCompatActivity {
     if (mustResume) {
       gameView.loadGame();
     } else {
-      gameView.resetGame(isMultiplayer);
+      gameView.startGame(isMultiplayer);
     }
   }
 
@@ -64,33 +56,6 @@ public class GameActivity extends AppCompatActivity {
   public GameView getGameView() {
     return gameView;
   }
-
-
-  private void requestWritePermission() {
-    boolean hasPermission = (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
-    G.hasWriteAccess = hasPermission;
-    G.createDirectory();
-    if (!hasPermission) {
-      ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 123);
-    }
-  }
-
-
-  @Override
-  public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    switch (requestCode) {
-      case 123: {
-        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-          G.hasWriteAccess = true;
-          G.createDirectory();
-        } else {
-          Toast.makeText(this, "Write to external storage required for loading & saving game", Toast.LENGTH_LONG).show();
-        }
-      }
-    }
-  }
-
 
   @Override
   protected void onPause() {

@@ -1,15 +1,13 @@
 package com.soheil.dotsandboxes.activities;
 
 import android.os.Bundle;
-
 import android.widget.CompoundButton;
 import android.widget.Switch;
-
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.soheil.dotsandboxes.R;
-import com.soheil.dotsandboxes.classes.Settings;
 
+import project.app.Settings;
 
 public class SettingsActivity extends AppCompatActivity {
 
