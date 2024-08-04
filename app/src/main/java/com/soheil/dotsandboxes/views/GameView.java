@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-@SuppressWarnings("all")
+
 public class GameView extends View {
 
     private Paint paintBox;
@@ -57,7 +58,10 @@ public class GameView extends View {
 
     private static ArrayList<Move> availableMoves = new ArrayList<>();
 
-    private static float[] playerIndexEffectRadius = new float[] {50, 25};
+    private static float[] playerIndexEffectRadius = new float[]{50, 25};
+    private static boolean isRenderingLock = false;
+
+    private static float lastLineAlpha = 0;
 
     private static class Theme {
         private static int[] playerColors = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
@@ -85,7 +89,7 @@ public class GameView extends View {
         private static int rows = 4;
 
         private static String[] playerNames = new String[]{"Player 1", "Player 2"};
-        private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
+        private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_CPU};
         //private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
 
         private static boolean highGraphic = true;
@@ -322,11 +326,17 @@ public class GameView extends View {
 
 
     private void updatePhysic(long elapsedTime) {
-        for (int i=0; i<playerIndexEffectRadius.length; i++) {
+        for (int i = 0; i < playerIndexEffectRadius.length; i++) {
             playerIndexEffectRadius[i] += elapsedTime * 0.08f;
             if (playerIndexEffectRadius[i] > 90) {
                 playerIndexEffectRadius[i] = 50;
             }
+        }
+
+        lastLineAlpha += elapsedTime * 0.005f;
+        if (lastLineAlpha >= 1) {
+            isRenderingLock = false;
+            lastLineAlpha = 0;
         }
     }
 
@@ -571,14 +581,38 @@ public class GameView extends View {
 
 
     private void drawConnectedLines(Canvas canvas) {
-        for (Action line : State.actions) {
-            drawLine(canvas, line);
+        if (Options.highGraphic && isRenderingLock) {
+            for (int i = 0; i < State.actions.size() - 1; i++) {
+                Action action = State.actions.get(i);
+                drawLine(canvas, action);
+            }
+
+            drawAnimateLastAction(canvas);
+        } else {
+            for (Action line : State.actions) {
+                drawLine(canvas, line);
+            }
+        }
+    }
+
+
+    private void drawAnimateLastAction(Canvas canvas) {
+        Action lastAction = State.actions.get(State.actions.size()-1);
+        Position p1 = getPointPoisition(lastAction.i1, lastAction.j1);
+        Position p2 = getPointPoisition(lastAction.i2, lastAction.j2);
+        paintLine.setColor(getPlayerColor(lastAction.playerIndex));
+        if (p1.x == p2.x) {
+            //vertical
+            canvas.drawLine(p1.x, p1.y, p2.x, p1.y - Theme.space * lastLineAlpha, paintLine);
+        } else {
+            //horizontal
+            canvas.drawLine(p1.x, p1.y, p1.x + Theme.space * lastLineAlpha, p2.y, paintLine);
         }
     }
 
 
     private void drawPlayerIndexEffect(Canvas canvas, int x, int y) {
-        for (int i=0; i<playerIndexEffectRadius.length; i++) {
+        for (int i = 0; i < playerIndexEffectRadius.length; i++) {
             float alpha = 2.5f * (100 - playerIndexEffectRadius[i] - 10);
             scoreEffectPaint.setAlpha((int) alpha);
             canvas.drawCircle(x, y, playerIndexEffectRadius[i], scoreEffectPaint);
@@ -669,7 +703,7 @@ public class GameView extends View {
 
 
     private String getGameFinishMessage() {
-        String message;
+        String message = "";
         if (getPlayerScore(1) == getPlayerScore(2)) {
             message = G.context.getString(R.string.gameDraw);
         } else if (getPlayerScore(1) > getPlayerScore(2)) {
@@ -689,6 +723,10 @@ public class GameView extends View {
         }
 
         if (isCpuTurn()) {
+            return true;
+        }
+
+        if (isRenderingLock) {
             return true;
         }
 
@@ -779,6 +817,11 @@ public class GameView extends View {
         // add line to list of connected actions
         Action line = new Action(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j, getPlayerIndex());
         State.actions.add(line);
+
+        if (Options.highGraphic) {
+            isRenderingLock = true;
+            lastLineAlpha = 0;
+        }
 
         for (int index = availableMoves.size() - 1; index >= 0; index--) {
             Move move = availableMoves.get(index);
