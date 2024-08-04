@@ -8,13 +8,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
-
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-
-
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -290,6 +287,16 @@ public class GameView extends View {
 
 
     public void resetGame() {
+        resetGame(false);
+    }
+
+    public void resetGame(boolean isMultiplayer) {
+        if (isMultiplayer) {
+            Options.playerTypes[1] = Options.TYPE_PLAYER;
+        } else {
+            Options.playerTypes[1] = Options.TYPE_CPU;
+        }
+
         State.playerScores[0] = 0;
         State.playerScores[1] = 0;
 
@@ -525,7 +532,7 @@ public class GameView extends View {
 
     private boolean isGameFinished() {
         int boxCount = 0;
-        for (Action action: State.actions) {
+        for (Action action : State.actions) {
             boxCount += action.boxes.size();
         }
         return boxCount == (Options.cols - 1) * (Options.rows - 1);
@@ -652,7 +659,7 @@ public class GameView extends View {
         output[0] = new Position(0, 0);
         output[1] = new Position(0, 0);
 
-        if (lastLineAlpha >=2) {
+        if (lastLineAlpha >= 2) {
             output[0].x = p1.x;
             output[0].y = p1.y;
             output[1].x = p2.x;
@@ -702,7 +709,7 @@ public class GameView extends View {
             return output;
         }
 
-        if (lastLineAlpha >=2) {
+        if (lastLineAlpha >= 2) {
             int x0 = screenWidth;
             int y0 = screenHeight;
 
@@ -771,9 +778,9 @@ public class GameView extends View {
 
     private void drawBoxes(Canvas canvas) {
         int index = 0;
-        for (Action action: State.actions) {
+        for (Action action : State.actions) {
             if (Options.highGraphic && isRenderingLock) {
-                if (index == State.actions.size() -1 && lastLineAlpha <= 2) {
+                if (index == State.actions.size() - 1 && lastLineAlpha <= 2) {
                     break;
                 }
             }
@@ -1287,7 +1294,7 @@ public class GameView extends View {
         boolean isFullConnected = hasLeft && hasRight && hasTop && hasBottom;
         if (isFullConnected) {
             box.playerIndex = getPlayerIndex();
-            State.actions.get(State.actions.size()-1).boxes.add(box);
+            State.actions.get(State.actions.size() - 1).boxes.add(box);
 
             increasePlayerScore(box.playerIndex);
             return true;

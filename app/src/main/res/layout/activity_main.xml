@@ -1,22 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:gravity="center_vertical"
     android:orientation="vertical"
-    tools:context=".activities.MainActivity">
+    tools:ignore="all">
 
-    <Button
-        android:id="@+id/btn_restart"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="RestartGame" />
-
-    <com.soheil.dotsandboxes.views.GameView
-        android:id="@+id/GameView"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="48dip">
+
+        <Button
+            android:id="@+id/btn_singlePlayer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Single Player" />
+
+        <Button
+            android:id="@+id/btn_multiPlayer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Multi Player" />
+
+        <Button
+            android:id="@+id/btn_options"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Options" />
+
+        <Button
+            android:id="@+id/btn_about"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dip"
+            android:layout_weight="1"
+            android:text="About" />
+
+    </LinearLayout>
+
 </LinearLayout>
