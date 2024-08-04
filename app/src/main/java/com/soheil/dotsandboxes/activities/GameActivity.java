@@ -2,15 +2,15 @@ package com.soheil.dotsandboxes.activities;
 
 import android.app.Dialog;
 import android.os.Bundle;
+
 import android.view.View;
 import android.widget.ImageButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.soheil.dotsandboxes.R;
-
-import project.dialog.OptionDialog;
-import project.view.GameView;
+import com.soheil.dotsandboxes.dialog.OptionDialog;
+import com.soheil.dotsandboxes.views.GameView;
 
 
 public class GameActivity extends AppCompatActivity {
@@ -32,7 +32,7 @@ public class GameActivity extends AppCompatActivity {
     btn_reset.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
-        gameView.startGame(isMultiplayer);
+        gameView.resetGame();
       }
     });
 

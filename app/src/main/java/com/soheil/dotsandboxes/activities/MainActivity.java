@@ -13,6 +13,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.soheil.dotsandboxes.R;
+import com.soheil.dotsandboxes.classes.G;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -54,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
     btn_options.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
-        Intent intent = new Intent(MainActivity.this, project.activity.SettingsActivity.class);
+        Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
         MainActivity.this.startActivity(intent);
       }
     });
@@ -71,8 +72,8 @@ public class MainActivity extends AppCompatActivity {
 
   private void requestWritePermission() {
     boolean hasPermission = (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
-    project.app.G.hasWriteAccess = hasPermission;
-    project.app.G.createDirectory();
+    G.hasWriteAccess = hasPermission;
+    G.createDirectory();
     if (!hasPermission) {
       ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 123);
     }
@@ -85,8 +86,8 @@ public class MainActivity extends AppCompatActivity {
     switch (requestCode) {
       case 123: {
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-          project.app.G.hasWriteAccess = true;
-          project.app.G.createDirectory();
+          G.hasWriteAccess = true;
+          G.createDirectory();
         } else {
           Toast.makeText(this, "Write to external storage required for loading & saving game", Toast.LENGTH_LONG).show();
         }

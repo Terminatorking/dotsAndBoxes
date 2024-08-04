@@ -3,11 +3,11 @@ package com.soheil.dotsandboxes.activities;
 import android.os.Bundle;
 import android.widget.CompoundButton;
 import android.widget.Switch;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.soheil.dotsandboxes.R;
-
-import project.app.Settings;
+import com.soheil.dotsandboxes.classes.Settings;
 
 public class SettingsActivity extends AppCompatActivity {
 

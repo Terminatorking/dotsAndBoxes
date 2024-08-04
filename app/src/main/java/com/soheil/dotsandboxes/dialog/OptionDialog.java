@@ -1,14 +1,16 @@
-package com.soheil.dotsandboxes.classes;
+package com.soheil.dotsandboxes.dialog;
 
 import android.app.Dialog;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 
 import com.soheil.dotsandboxes.R;
 import com.soheil.dotsandboxes.activities.GameActivity;
+import com.soheil.dotsandboxes.classes.Settings;
 
 public class OptionDialog extends Dialog {
 
@@ -24,6 +26,8 @@ public class OptionDialog extends Dialog {
     super.onCreate(savedInstanceState);
     requestWindowFeature(Window.FEATURE_NO_TITLE);
     setContentView(R.layout.dialog_option);
+
+    getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
 
     Button btn_ok = (Button) findViewById(R.id.btn_ok);
     final EditText edt_cols = (EditText) findViewById(R.id.edt_cols);

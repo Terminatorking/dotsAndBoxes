@@ -10,9 +10,9 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -434,10 +434,25 @@ public class GameView extends View {
 
       for (Action action : state.actions) {
         JSONObject jsonAction = new JSONObject();
-        jsonAction.put("i1", action.move.i1);
-        jsonAction.put("j1", action.move.j1);
-        jsonAction.put("i2", action.move.i2);
-        jsonAction.put("j2", action.move.j2);
+        JSONObject jsonMove = new JSONObject();
+        JSONArray jsonBoxes = new JSONArray();
+
+        jsonMove.put("i1", action.move.i1);
+        jsonMove.put("j1", action.move.j1);
+        jsonMove.put("i2", action.move.i2);
+        jsonMove.put("j2", action.move.j2);
+
+        for (Box box : action.boxes) {
+          JSONObject boxJson = new JSONObject();
+          boxJson.put("i", box.i);
+          boxJson.put("j", box.j);
+          boxJson.put("playerIndex", box.playerIndex);
+
+          jsonBoxes.put(boxJson);
+        }
+
+        jsonAction.put("move", jsonMove);
+        jsonAction.put("boxes", jsonBoxes);
         jsonAction.put("playerIndex", action.playerIndex);
 
         actionsJson.put(jsonAction);
@@ -473,18 +488,29 @@ public class GameView extends View {
       JSONObject stateJson = save.getJSONObject("state");
       state.playerIndex = stateJson.getInt("playerIndex");
 
-      JSONArray actions = stateJson.getJSONArray("actions");
-      for (int i = 0; i < actions.length(); i++) {
-        JSONObject jsonAction = actions.getJSONObject(i);
-        state.actions.add(new Action(
+      JSONArray actionsJson = stateJson.getJSONArray("actions");
+      for (int i = 0; i < actionsJson.length(); i++) {
+        JSONObject jsonAction = actionsJson.getJSONObject(i);
+        JSONObject moveJson = jsonAction.getJSONObject("move");
+        Action action = new Action(
           new Move(
-            jsonAction.getInt("i1"),
-            jsonAction.getInt("j1"),
-            jsonAction.getInt("i2"),
-            jsonAction.getInt("j2")
+            moveJson.getInt("i1"),
+            moveJson.getInt("j1"),
+            moveJson.getInt("i2"),
+            moveJson.getInt("j2")
           ),
-          jsonAction.getInt("playerIndex")
-        ));
+          jsonAction.getInt("playerIndex"));
+
+        state.actions.add(action);
+
+        JSONArray boxesJson = jsonAction.getJSONArray("boxes");
+        for (int boxIndex = 0; boxIndex < boxesJson.length(); boxIndex++) {
+          JSONObject boxJson = boxesJson.getJSONObject(boxIndex);
+          Box box = new Box(boxJson.getInt("i"), boxJson.getInt("j"));
+          box.playerIndex = boxJson.getInt("playerIndex");
+          increasePlayerScore(box.playerIndex);
+          action.boxes.add(box);
+        }
       }
 
       populateMoves();
@@ -825,6 +851,14 @@ public class GameView extends View {
     Diff diff1 = diffs.get(0);
     Diff diff2 = diffs.get(1);
 
+    if (diff1.diff > Theme.SPACE_BETWEEN_DOTS) {
+      return true;
+    }
+
+    if (diff2.diff > Theme.SPACE_BETWEEN_DOTS) {
+      return true;
+    }
+
     connectLine(diff1.point, diff2.point);
     refresh();
 
@@ -959,11 +993,9 @@ public class GameView extends View {
           ai();
           refresh();
         }
-      }, 100);
+      }, 600);
     }
   }
-
-
 
 
   private void ai() {
@@ -1009,7 +1041,6 @@ public class GameView extends View {
         }
 
         if (freeSides.size() == 2) {
-          Log.i("LOG", "Sides = 2");
           if (freeSides.contains(EDGE_LEFT) && freeSides.contains(EDGE_RIGHT)) {
             //top, bottom
             unsafeMoves.add(new Move(i, j + 1, i + 1, j + 1));
@@ -1166,7 +1197,7 @@ public class GameView extends View {
 
   private boolean hasLeft(int i, int j) {
     for (Action action : state.actions) {
-      Move testMove = new Move(i, j, i, j+1);
+      Move testMove = new Move(i, j, i, j + 1);
       if (action.move.equals(testMove)) {
         return true;
       }
@@ -1178,7 +1209,7 @@ public class GameView extends View {
 
   private boolean hasRight(int i, int j) {
     for (Action action : state.actions) {
-      Move testMove = new Move(i + 1, j, i + 1, j+1);
+      Move testMove = new Move(i + 1, j, i + 1, j + 1);
       if (action.move.equals(testMove)) {
         return true;
       }
@@ -1190,7 +1221,7 @@ public class GameView extends View {
 
   private boolean hasTop(int i, int j) {
     for (Action action : state.actions) {
-      Move testMove = new Move(i, j + 1, i + 1, j+1);
+      Move testMove = new Move(i, j + 1, i + 1, j + 1);
       if (action.move.equals(testMove)) {
         return true;
       }
