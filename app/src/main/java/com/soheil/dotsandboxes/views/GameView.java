@@ -1,18 +1,21 @@
 package com.soheil.dotsandboxes.views;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.soheil.dotsandboxes.R;
-import com.soheil.dotsandboxes.classes.G;
 
-import org.jetbrains.annotations.Nullable;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,6 +29,13 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+
+import static com.soheil.dotsandboxes.classes.G.context;
+
+import androidx.annotation.Nullable;
+
+import com.soheil.dotsandboxes.R;
+import com.soheil.dotsandboxes.classes.G;
 
 
 public class GameView extends View {
@@ -62,6 +72,8 @@ public class GameView extends View {
     private static boolean isRenderingLock = false;
 
     private static float lastLineAlpha = 0;
+    private Bitmap bluePencil;
+    private Bitmap redPencil;
 
     private static class Theme {
         private static int[] playerColors = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
@@ -77,7 +89,6 @@ public class GameView extends View {
         private static boolean isGameOver = false;
         private static boolean isSide1 = true;
         private static ArrayList<Action> actions = new ArrayList<>();
-        private static ArrayList<Box> boxes = new ArrayList<>();
     }
 
 
@@ -89,7 +100,7 @@ public class GameView extends View {
         private static int rows = 4;
 
         private static String[] playerNames = new String[]{"Player 1", "Player 2"};
-        private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_CPU};
+        private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
         //private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
 
         private static boolean highGraphic = true;
@@ -154,6 +165,7 @@ public class GameView extends View {
         public int i2;
         public int j2;
         public int playerIndex;
+        public ArrayList<Box> boxes = new ArrayList<>();
 
         public Action(int i1, int j1, int i2, int j2, int playerIndex) {
             this.i1 = i1;
@@ -203,12 +215,20 @@ public class GameView extends View {
             return;
         }
 
+        initializeBitmaps();
+
         if (Options.highGraphic) {
             mainLoop();
         }
 
         initializePaints();
         initializeMetrics();
+    }
+
+
+    private void initializeBitmaps() {
+        bluePencil = BitmapFactory.decodeResource(G.resources, R.drawable.blue_pencil);
+        redPencil = BitmapFactory.decodeResource(G.resources, R.drawable.red_pencil);
     }
 
 
@@ -279,7 +299,6 @@ public class GameView extends View {
         State.isGameOver = false;
 
         State.actions.clear();
-        State.boxes.clear();
 
         populateMoves();
 
@@ -333,8 +352,12 @@ public class GameView extends View {
             }
         }
 
-        lastLineAlpha += elapsedTime * 0.005f;
-        if (lastLineAlpha >= 1) {
+        if (lastLineAlpha > 1 && lastLineAlpha < 2) {
+            lastLineAlpha += elapsedTime * 0.007f;
+        } else {
+            lastLineAlpha += elapsedTime * 0.003f;
+        }
+        if (lastLineAlpha >= 3) {
             isRenderingLock = false;
             lastLineAlpha = 0;
         }
@@ -501,7 +524,11 @@ public class GameView extends View {
 
 
     private boolean isGameFinished() {
-        return State.boxes.size() == (Options.cols - 1) * (Options.rows - 1);
+        int boxCount = 0;
+        for (Action action: State.actions) {
+            boxCount += action.boxes.size();
+        }
+        return boxCount == (Options.cols - 1) * (Options.rows - 1);
     }
 
 
@@ -555,15 +582,34 @@ public class GameView extends View {
 
         drawBackground(canvas);
         drawConnectedLines(canvas);
-        drawBoxes(canvas);
         drawDots(canvas);
+        drawBoxes(canvas);
         drawScores(canvas);
+        drawAnimateLastActionPencil(canvas);
         drawDebugTouchPosition(canvas);
         drawDebugNaming(canvas);
 
         if (State.isGameOver) {
             drawFinishMessage(canvas);
         }
+    }
+
+
+    private void drawPencil(Canvas canvas, int playerIndex, int x, int y) {
+        float scale = 0.5f;
+        Bitmap bitmap;
+        if (playerIndex == 1) {
+            bitmap = bluePencil;
+        } else {
+            bitmap = redPencil;
+        }
+
+        x -= (int) (bitmap.getWidth() * scale);
+
+        Rect srcRect = new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight());
+        RectF dstRect = new RectF(x, y, x + bitmap.getWidth() * scale, y + bitmap.getHeight() * scale);
+
+        canvas.drawBitmap(bitmap, srcRect, dstRect, paintDot);
     }
 
 
@@ -596,17 +642,112 @@ public class GameView extends View {
     }
 
 
-    private void drawAnimateLastAction(Canvas canvas) {
-        Action lastAction = State.actions.get(State.actions.size()-1);
+    private Position[] getLastLinePosition() {
+        Action lastAction = State.actions.get(State.actions.size() - 1);
         Position p1 = getPointPoisition(lastAction.i1, lastAction.j1);
         Position p2 = getPointPoisition(lastAction.i2, lastAction.j2);
         paintLine.setColor(getPlayerColor(lastAction.playerIndex));
+
+        Position[] output = new Position[2];
+        output[0] = new Position(0, 0);
+        output[1] = new Position(0, 0);
+
+        if (lastLineAlpha >=2) {
+            output[0].x = p1.x;
+            output[0].y = p1.y;
+            output[1].x = p2.x;
+            output[1].y = p2.y;
+            return output;
+        }
+
         if (p1.x == p2.x) {
             //vertical
-            canvas.drawLine(p1.x, p1.y, p2.x, p1.y - Theme.space * lastLineAlpha, paintLine);
+            int y2 = (int) (p1.y - Theme.space * (lastLineAlpha - 1));
+            output[0].x = p1.x;
+            output[0].y = p1.y;
+            output[1].x = p2.x;
+            output[1].y = y2;
+            return output;
         } else {
             //horizontal
-            canvas.drawLine(p1.x, p1.y, p1.x + Theme.space * lastLineAlpha, p2.y, paintLine);
+            int x2 = (int) (p1.x + Theme.space * (lastLineAlpha - 1));
+            output[0].x = p1.x;
+            output[0].y = p1.y;
+            output[1].x = x2;
+            output[1].y = p2.y;
+            return output;
+        }
+    }
+
+
+    private Position[] getLastLinePositionPencil() {
+        Action lastAction = State.actions.get(State.actions.size() - 1);
+        Position p1 = getPointPoisition(lastAction.i1, lastAction.j1);
+        Position p2 = getPointPoisition(lastAction.i2, lastAction.j2);
+        paintLine.setColor(getPlayerColor(lastAction.playerIndex));
+
+        Position[] output = new Position[2];
+        output[0] = new Position(0, 0);
+        output[1] = new Position(0, 0);
+
+        if (lastLineAlpha < 1) {
+            int x0 = 0;
+            int y0 = screenHeight;
+
+            int diffX = p1.x - x0;
+            int diffY = p1.y - y0;
+
+            output[1].x = (int) (x0 + diffX * lastLineAlpha);
+            output[1].y = (int) (y0 + diffY * lastLineAlpha);
+            return output;
+        }
+
+        if (lastLineAlpha >=2) {
+            int x0 = screenWidth;
+            int y0 = screenHeight;
+
+            int diffX = x0 - p2.x;
+            int diffY = y0 - p2.y;
+
+            output[1].x = (int) (p2.x + diffX * (lastLineAlpha - 2));
+            output[1].y = (int) (p2.y + diffY * (lastLineAlpha - 2));
+            return output;
+        }
+
+        if (p1.x == p2.x) {
+            //vertical
+            int y2 = (int) (p1.y - Theme.space * (lastLineAlpha - 1));
+            output[0].x = p1.x;
+            output[0].y = p1.y;
+            output[1].x = p2.x;
+            output[1].y = y2;
+            return output;
+        } else {
+            //horizontal
+            int x2 = (int) (p1.x + Theme.space * (lastLineAlpha - 1));
+            output[0].x = p1.x;
+            output[0].y = p1.y;
+            output[1].x = x2;
+            output[1].y = p2.y;
+            return output;
+        }
+    }
+
+
+    private void drawAnimateLastAction(Canvas canvas) {
+        if (lastLineAlpha > 1 && lastLineAlpha <= 3) {
+            Position[] positions = getLastLinePosition();
+            canvas.drawLine(positions[0].x, positions[0].y, positions[1].x, positions[1].y, paintLine);
+        }
+    }
+
+
+    private void drawAnimateLastActionPencil(Canvas canvas) {
+        if (Options.highGraphic && isRenderingLock) {
+            Position[] positions = getLastLinePositionPencil();
+
+            Action lastAction = State.actions.get(State.actions.size() - 1);
+            drawPencil(canvas, lastAction.playerIndex, positions[1].x, positions[1].y);
         }
     }
 
@@ -629,10 +770,20 @@ public class GameView extends View {
 
 
     private void drawBoxes(Canvas canvas) {
-        for (Box box : State.boxes) {
-            paintBox.setColor(getPlayerColor(box.playerIndex));
-            Position boxPos = getPointPoisition(box.i, box.j);
-            canvas.drawCircle(boxPos.x + Theme.space / 2, boxPos.y - Theme.space / 2, 30, paintBox);
+        int index = 0;
+        for (Action action: State.actions) {
+            if (Options.highGraphic && isRenderingLock) {
+                if (index == State.actions.size() -1 && lastLineAlpha <= 2) {
+                    break;
+                }
+            }
+
+            for (Box box : action.boxes) {
+                paintBox.setColor(getPlayerColor(box.playerIndex));
+                Position boxPos = getPointPoisition(box.i, box.j);
+                canvas.drawCircle(boxPos.x + Theme.space / 2, boxPos.y - Theme.space / 2, 30, paintBox);
+            }
+            index++;
         }
     }
 
@@ -705,11 +856,11 @@ public class GameView extends View {
     private String getGameFinishMessage() {
         String message = "";
         if (getPlayerScore(1) == getPlayerScore(2)) {
-            message = G.context.getString(R.string.gameDraw);
+            message = context.getString(R.string.gameDraw);
         } else if (getPlayerScore(1) > getPlayerScore(2)) {
-            message = getPlayerName(1) + G.context.getString(R.string.playerWonGame);
+            message = getPlayerName(1) + context.getString(R.string.playerWonGame);
         } else {
-            message = getPlayerName(2) + G.context.getString(R.string.playerWonGame);
+            message = getPlayerName(2) + context.getString(R.string.playerWonGame);
         }
 
         return message;
@@ -1128,17 +1279,15 @@ public class GameView extends View {
         boolean hasTop = false;
         boolean hasBottom = false;
 
-        for (Action line : State.actions) {
-            hasLeft = hasLeft(i, j);
-            hasRight = hasRight(i, j);
-            hasTop = hasTop(i, j);
-            hasBottom = hasBottom(i, j);
-        }
+        hasLeft = hasLeft(i, j);
+        hasRight = hasRight(i, j);
+        hasTop = hasTop(i, j);
+        hasBottom = hasBottom(i, j);
 
         boolean isFullConnected = hasLeft && hasRight && hasTop && hasBottom;
         if (isFullConnected) {
             box.playerIndex = getPlayerIndex();
-            State.boxes.add(box);
+            State.actions.get(State.actions.size()-1).boxes.add(box);
 
             increasePlayerScore(box.playerIndex);
             return true;
