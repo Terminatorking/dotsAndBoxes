@@ -3,6 +3,36 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center_vertical"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="40dip">
+
+    <Switch
+        android:id="@+id/chk_enableHighPerformance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="Enable High Performance Game"/>
+
+    <TextView
+        android:id="@+id/textView8"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dip"
+        android:paddingLeft="10dip"
+        android:text="High Performance Game , Will not render animations and Will save your phone power."/>
+
+    <Switch
+        android:id="@+id/chk_enableSfx"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="Enable Sound Effects"/>
+
+    <Switch
+        android:id="@+id/chk_enableMusic"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="Enable Music"/>
 
 </LinearLayout>

@@ -8,10 +8,13 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+
+
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,6 +36,7 @@ import androidx.annotation.Nullable;
 
 import com.soheil.dotsandboxes.R;
 import com.soheil.dotsandboxes.classes.G;
+import com.soheil.dotsandboxes.classes.Settings;
 
 
 public class GameView extends View {
@@ -58,60 +62,65 @@ public class GameView extends View {
     private float touchX;
     private float touchY;
 
-    private static final int EDGE_LEFT = 0;
-    private static final int EDGE_RIGHT = 1;
-    private static final int EDGE_TOP = 2;
-    private static final int EDGE_BOTTOM = 3;
+    private final int EDGE_LEFT = 0;
+    private final int EDGE_RIGHT = 1;
+    private final int EDGE_TOP = 2;
+    private final int EDGE_BOTTOM = 3;
 
-    private static ArrayList<Move> availableMoves = new ArrayList<>();
+    private ArrayList<Move> availableMoves = new ArrayList<>();
 
-    private static float[] playerIndexEffectRadius = new float[]{50, 25};
-    private static boolean isRenderingLock = false;
+    private float[] playerIndexEffectRadius = new float[]{50, 25};
+    private boolean isRenderingLock = false;
 
-    private static float lastLineAlpha = 0;
+    private float lastLineAlpha = 0;
     private Bitmap bluePencil;
     private Bitmap redPencil;
 
-    private static class Theme {
-        private static int[] playerColors = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
-        private static int space = 150;
-        private static int radius = 15;
-        private static int backgroundColor = Color.parseColor("#222222");
+    private State state = new State();
+    private Theme theme = new Theme();
+    private Options options = new Options();
+    private Debug debug = new Debug();
+
+    private class Theme {
+        private int[] playerColors = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
+        private int space = 150;
+        private int radius = 15;
+        private int backgroundColor = Color.parseColor("#222222");
     }
 
 
-    private static class State {
-        private static int[] playerScores = new int[]{0, 0};
+    private class State {
+        private int[] playerScores = new int[]{0, 0};
 
-        private static boolean isGameOver = false;
-        private static boolean isSide1 = true;
-        private static ArrayList<Action> actions = new ArrayList<>();
+        private boolean isGameOver = false;
+        private boolean isSide1 = true;
+        private ArrayList<Action> actions = new ArrayList<>();
     }
 
 
-    private static class Options {
-        private static final int TYPE_CPU = 0;
-        private static final int TYPE_PLAYER = 1;
+    private class Options {
+        private final int TYPE_CPU = 0;
+        private final int TYPE_PLAYER = 1;
 
-        private static int cols = 4;
-        private static int rows = 4;
+        protected int cols = 4;
+        protected int rows = 4;
 
-        private static String[] playerNames = new String[]{"Player 1", "Player 2"};
-        private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
-        //private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
+        private String[] playerNames = new String[]{"Player 1", "Player 2"};
+        private int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
+        //private int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
 
-        private static boolean highGraphic = true;
+        private boolean highGraphic = !Settings.isEnableHighPerformance();
     }
 
 
-    private static class Debug {
-        private static boolean isDebugMode = true;
-        private static boolean drawTouch = false;
-        private static boolean drawDotNames = false;
+    private class Debug {
+        private boolean isdebugMode = true;
+        private boolean drawTouch = false;
+        private boolean drawDotNames = false;
     }
 
 
-    private static class Position {
+    private class Position {
         public int x;
         public int y;
 
@@ -122,7 +131,7 @@ public class GameView extends View {
     }
 
 
-    private static class Diff {
+    private class Diff {
         public Point point;
         public Float diff;
 
@@ -133,7 +142,7 @@ public class GameView extends View {
     }
 
 
-    private static class Point {
+    private class Point {
         public int i;
         public int j;
 
@@ -144,7 +153,7 @@ public class GameView extends View {
     }
 
 
-    private static class Box {
+    private class Box {
         public int i;
         public int j;
         public int playerIndex;
@@ -156,7 +165,7 @@ public class GameView extends View {
     }
 
 
-    private static class Action {
+    private class Action {
         public int i1;
         public int j1;
         public int i2;
@@ -174,7 +183,7 @@ public class GameView extends View {
     }
 
 
-    private static class Move {
+    private class Move {
         public int i1;
         public int j1;
         public int i2;
@@ -214,7 +223,7 @@ public class GameView extends View {
 
         initializeBitmaps();
 
-        if (Options.highGraphic) {
+        if (options.highGraphic) {
             mainLoop();
         }
 
@@ -273,8 +282,8 @@ public class GameView extends View {
 
 
     private void initializeMetrics() {
-        boxWidth = (Options.cols - 1) * Theme.space;
-        boxHeight = (Options.rows - 1) * Theme.space;
+        boxWidth = (options.cols - 1) * theme.space;
+        boxHeight = (options.rows - 1) * theme.space;
 
         screenWidth = G.screenWidth;
         screenHeight = G.screenHeight;
@@ -292,20 +301,20 @@ public class GameView extends View {
 
     public void resetGame(boolean isMultiplayer) {
         if (isMultiplayer) {
-            Options.playerTypes[1] = Options.TYPE_PLAYER;
+            options.playerTypes[1] = options.TYPE_PLAYER;
         } else {
-            Options.playerTypes[1] = Options.TYPE_CPU;
+            options.playerTypes[1] = options.TYPE_CPU;
         }
 
-        State.playerScores[0] = 0;
-        State.playerScores[1] = 0;
+        state.playerScores[0] = 0;
+        state.playerScores[1] = 0;
 
-        Debug.isDebugMode = false;
-        State.isSide1 = true;
+        debug.isdebugMode = false;
+        state.isSide1 = true;
 
-        State.isGameOver = false;
+        state.isGameOver = false;
 
-        State.actions.clear();
+        state.actions.clear();
 
         populateMoves();
 
@@ -378,7 +387,7 @@ public class GameView extends View {
 
     private void addToAvailableMoves(int i1, int j1, int i2, int j2) {
         boolean isInAction = false;
-        for (Action action : State.actions) {
+        for (Action action : state.actions) {
             if (action.i1 == i1 && action.j1 == j1 && action.i2 == i2 && action.j2 == j2) {
                 isInAction = true;
                 break;
@@ -393,8 +402,8 @@ public class GameView extends View {
     private void populateMoves() {
         availableMoves.clear();
 
-        for (int i = 0; i < Options.cols - 1; i++) {
-            for (int j = 0; j < Options.rows; j++) {
+        for (int i = 0; i < options.cols - 1; i++) {
+            for (int j = 0; j < options.rows; j++) {
                 int i1 = i;
                 int j1 = j;
                 int i2 = i + 1;
@@ -403,8 +412,8 @@ public class GameView extends View {
             }
         }
 
-        for (int i = 0; i < Options.cols; i++) {
-            for (int j = 0; j < Options.rows - 1; j++) {
+        for (int i = 0; i < options.cols; i++) {
+            for (int j = 0; j < options.rows - 1; j++) {
                 int i1 = i;
                 int j1 = j;
                 int i2 = i;
@@ -418,7 +427,7 @@ public class GameView extends View {
 
     private void refresh() {
         if (isGameFinished()) {
-            State.isGameOver = true;
+            state.isGameOver = true;
         }
 
         invalidate();
@@ -427,19 +436,19 @@ public class GameView extends View {
 
     public void saveGame() {
         JSONObject save = new JSONObject();
-        JSONObject options = new JSONObject();
-        JSONObject state = new JSONObject();
-        JSONArray actions = new JSONArray();
+        JSONObject optionsJson = new JSONObject();
+        JSONObject stateJson = new JSONObject();
+        JSONArray actionsJson = new JSONArray();
         try {
-            options.put("cols", Options.cols);
-            options.put("rows", Options.rows);
-            options.put("opponentType", getPlayerType(2));
-            save.put("options", options);
+            optionsJson.put("cols", options.cols);
+            optionsJson.put("rows", options.rows);
+            optionsJson.put("opponentType", getPlayerType(2));
+            save.put("options", optionsJson);
 
-            state.put("playerIndex", getPlayerIndex());
-            state.put("actions", actions);
+            stateJson.put("playerIndex", getPlayerIndex());
+            stateJson.put("actions", actionsJson);
 
-            for (Action action : State.actions) {
+            for (Action action : state.actions) {
                 JSONObject jsonAction = new JSONObject();
                 jsonAction.put("i1", action.i1);
                 jsonAction.put("j1", action.j1);
@@ -447,10 +456,10 @@ public class GameView extends View {
                 jsonAction.put("j2", action.j2);
                 jsonAction.put("playerIndex", action.playerIndex);
 
-                actions.put(jsonAction);
+                actionsJson.put(jsonAction);
             }
 
-            save.put("state", state);
+            save.put("state", stateJson);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -496,23 +505,23 @@ public class GameView extends View {
 
         try {
             JSONObject save = new JSONObject(savedGame);
-            JSONObject options = save.getJSONObject("options");
+            JSONObject optionsJson = save.getJSONObject("options");
 
-            Options.cols = options.getInt("cols");
-            Options.rows = options.getInt("rows");
-            int opponentType = options.getInt("opponentType");
-            //Options.playerTypes[1] = opponentType;
+            options.cols = optionsJson.getInt("cols");
+            options.rows = optionsJson.getInt("rows");
+            int opponentType = optionsJson.getInt("opponentType");
+            //options.playerTypes[1] = opponentType;
 
             resetGame();
 
-            JSONObject state = save.getJSONObject("state");
-            int playerIndex = state.getInt("playerIndex");
-            State.isSide1 = playerIndex == 1;
+            JSONObject stateJson = save.getJSONObject("state");
+            int playerIndex = stateJson.getInt("playerIndex");
+            state.isSide1 = playerIndex == 1;
 
-            JSONArray actions = state.getJSONArray("actions");
+            JSONArray actions = stateJson.getJSONArray("actions");
             for (int i = 0; i < actions.length(); i++) {
                 JSONObject jsonAction = actions.getJSONObject(i);
-                State.actions.add(new Action(
+                state.actions.add(new Action(
                         jsonAction.getInt("i1"),
                         jsonAction.getInt("j1"),
                         jsonAction.getInt("i2"),
@@ -532,10 +541,10 @@ public class GameView extends View {
 
     private boolean isGameFinished() {
         int boxCount = 0;
-        for (Action action : State.actions) {
+        for (Action action : state.actions) {
             boxCount += action.boxes.size();
         }
-        return boxCount == (Options.cols - 1) * (Options.rows - 1);
+        return boxCount == (options.cols - 1) * (options.rows - 1);
     }
 
 
@@ -545,37 +554,37 @@ public class GameView extends View {
 
 
     private int getPlayerColor(int playerIndex) {
-        return Theme.playerColors[playerIndex - 1];
+        return theme.playerColors[playerIndex - 1];
     }
 
 
     private int getPlayerIndex() {
-        return State.isSide1 ? 1 : 2;
+        return state.isSide1 ? 1 : 2;
     }
 
 
     private int getPlayerScore(int playerIndex) {
-        return State.playerScores[playerIndex - 1];
+        return state.playerScores[playerIndex - 1];
     }
 
 
     private int getPlayerType(int playerIndex) {
-        return Options.playerTypes[playerIndex - 1];
+        return options.playerTypes[playerIndex - 1];
     }
 
 
     private void increasePlayerScore(int playerIndex) {
-        State.playerScores[playerIndex - 1]++;
+        state.playerScores[playerIndex - 1]++;
     }
 
 
     private String getPlayerName(int playerIndex) {
-        return Options.playerNames[playerIndex - 1];
+        return options.playerNames[playerIndex - 1];
     }
 
 
     private boolean isCpuTurn() {
-        return getPlayerType(getPlayerIndex()) == Options.TYPE_CPU;
+        return getPlayerType(getPlayerIndex()) == options.TYPE_CPU;
     }
 
 
@@ -593,10 +602,10 @@ public class GameView extends View {
         drawBoxes(canvas);
         drawScores(canvas);
         drawAnimateLastActionPencil(canvas);
-        drawDebugTouchPosition(canvas);
-        drawDebugNaming(canvas);
+        drawdebugTouchPosition(canvas);
+        drawdebugNaming(canvas);
 
-        if (State.isGameOver) {
+        if (state.isGameOver) {
             drawFinishMessage(canvas);
         }
     }
@@ -621,28 +630,28 @@ public class GameView extends View {
 
 
     private Position getPointPoisition(int i, int j) {
-        int x = offsetX + (i * Theme.space);
-        int y = offsetY + ((Options.rows - 1 - j) * Theme.space);
+        int x = offsetX + (i * theme.space);
+        int y = offsetY + ((options.rows - 1 - j) * theme.space);
 
         return new Position(x, y);
     }
 
 
     private void drawBackground(Canvas canvas) {
-        canvas.drawColor(Theme.backgroundColor);
+        canvas.drawColor(theme.backgroundColor);
     }
 
 
     private void drawConnectedLines(Canvas canvas) {
-        if (Options.highGraphic && isRenderingLock) {
-            for (int i = 0; i < State.actions.size() - 1; i++) {
-                Action action = State.actions.get(i);
+        if (options.highGraphic && isRenderingLock) {
+            for (int i = 0; i < state.actions.size() - 1; i++) {
+                Action action = state.actions.get(i);
                 drawLine(canvas, action);
             }
 
             drawAnimateLastAction(canvas);
         } else {
-            for (Action line : State.actions) {
+            for (Action line : state.actions) {
                 drawLine(canvas, line);
             }
         }
@@ -650,7 +659,7 @@ public class GameView extends View {
 
 
     private Position[] getLastLinePosition() {
-        Action lastAction = State.actions.get(State.actions.size() - 1);
+        Action lastAction = state.actions.get(state.actions.size() - 1);
         Position p1 = getPointPoisition(lastAction.i1, lastAction.j1);
         Position p2 = getPointPoisition(lastAction.i2, lastAction.j2);
         paintLine.setColor(getPlayerColor(lastAction.playerIndex));
@@ -669,7 +678,7 @@ public class GameView extends View {
 
         if (p1.x == p2.x) {
             //vertical
-            int y2 = (int) (p1.y - Theme.space * (lastLineAlpha - 1));
+            int y2 = (int) (p1.y - theme.space * (lastLineAlpha - 1));
             output[0].x = p1.x;
             output[0].y = p1.y;
             output[1].x = p2.x;
@@ -677,7 +686,7 @@ public class GameView extends View {
             return output;
         } else {
             //horizontal
-            int x2 = (int) (p1.x + Theme.space * (lastLineAlpha - 1));
+            int x2 = (int) (p1.x + theme.space * (lastLineAlpha - 1));
             output[0].x = p1.x;
             output[0].y = p1.y;
             output[1].x = x2;
@@ -688,7 +697,7 @@ public class GameView extends View {
 
 
     private Position[] getLastLinePositionPencil() {
-        Action lastAction = State.actions.get(State.actions.size() - 1);
+        Action lastAction = state.actions.get(state.actions.size() - 1);
         Position p1 = getPointPoisition(lastAction.i1, lastAction.j1);
         Position p2 = getPointPoisition(lastAction.i2, lastAction.j2);
         paintLine.setColor(getPlayerColor(lastAction.playerIndex));
@@ -723,7 +732,7 @@ public class GameView extends View {
 
         if (p1.x == p2.x) {
             //vertical
-            int y2 = (int) (p1.y - Theme.space * (lastLineAlpha - 1));
+            int y2 = (int) (p1.y - theme.space * (lastLineAlpha - 1));
             output[0].x = p1.x;
             output[0].y = p1.y;
             output[1].x = p2.x;
@@ -731,7 +740,7 @@ public class GameView extends View {
             return output;
         } else {
             //horizontal
-            int x2 = (int) (p1.x + Theme.space * (lastLineAlpha - 1));
+            int x2 = (int) (p1.x + theme.space * (lastLineAlpha - 1));
             output[0].x = p1.x;
             output[0].y = p1.y;
             output[1].x = x2;
@@ -750,10 +759,10 @@ public class GameView extends View {
 
 
     private void drawAnimateLastActionPencil(Canvas canvas) {
-        if (Options.highGraphic && isRenderingLock) {
+        if (options.highGraphic && isRenderingLock) {
             Position[] positions = getLastLinePositionPencil();
 
-            Action lastAction = State.actions.get(State.actions.size() - 1);
+            Action lastAction = state.actions.get(state.actions.size() - 1);
             drawPencil(canvas, lastAction.playerIndex, positions[1].x, positions[1].y);
         }
     }
@@ -778,9 +787,9 @@ public class GameView extends View {
 
     private void drawBoxes(Canvas canvas) {
         int index = 0;
-        for (Action action : State.actions) {
-            if (Options.highGraphic && isRenderingLock) {
-                if (index == State.actions.size() - 1 && lastLineAlpha <= 2) {
+        for (Action action : state.actions) {
+            if (options.highGraphic && isRenderingLock) {
+                if (index == state.actions.size() - 1 && lastLineAlpha <= 2) {
                     break;
                 }
             }
@@ -788,7 +797,7 @@ public class GameView extends View {
             for (Box box : action.boxes) {
                 paintBox.setColor(getPlayerColor(box.playerIndex));
                 Position boxPos = getPointPoisition(box.i, box.j);
-                canvas.drawCircle(boxPos.x + Theme.space / 2, boxPos.y - Theme.space / 2, 30, paintBox);
+                canvas.drawCircle(boxPos.x + theme.space / 2, boxPos.y - theme.space / 2, 30, paintBox);
             }
             index++;
         }
@@ -796,10 +805,10 @@ public class GameView extends View {
 
 
     private void drawDots(Canvas canvas) {
-        for (int i = 0; i < Options.cols; i++) {
-            for (int j = 0; j < Options.rows; j++) {
+        for (int i = 0; i < options.cols; i++) {
+            for (int j = 0; j < options.rows; j++) {
                 Position point = getPointPoisition(i, j);
-                canvas.drawCircle(point.x, point.y, Theme.radius, paintDot);
+                canvas.drawCircle(point.x, point.y, theme.radius, paintDot);
             }
         }
     }
@@ -812,7 +821,7 @@ public class GameView extends View {
         canvas.drawText(getPlayerName(playerIndex), x, y + 100, paintText);
 
         if (playerIndex == getPlayerIndex()) {
-            if (Options.highGraphic) {
+            if (options.highGraphic) {
                 drawPlayerIndexEffect(canvas, x, y);
             } else {
                 scoreBorderPaint.setColor(Color.WHITE);
@@ -836,8 +845,8 @@ public class GameView extends View {
     }
 
 
-    private void drawDebugTouchPosition(Canvas canvas) {
-        if (!Debug.isDebugMode || !Debug.drawTouch) {
+    private void drawdebugTouchPosition(Canvas canvas) {
+        if (!debug.isdebugMode || !debug.drawTouch) {
             return;
         }
 
@@ -845,13 +854,13 @@ public class GameView extends View {
     }
 
 
-    private void drawDebugNaming(Canvas canvas) {
-        if (!Debug.isDebugMode || !Debug.drawDotNames) {
+    private void drawdebugNaming(Canvas canvas) {
+        if (!debug.isdebugMode || !debug.drawDotNames) {
             return;
         }
 
-        for (int i = 0; i < Options.cols; i++) {
-            for (int j = 0; j < Options.rows; j++) {
+        for (int i = 0; i < options.cols; i++) {
+            for (int j = 0; j < options.rows; j++) {
                 String name = "" + i + "," + j;
                 Position point = getPointPoisition(i, j);
                 canvas.drawText(name, point.x, point.y + 50, paintText);
@@ -876,7 +885,7 @@ public class GameView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (State.isGameOver) {
+        if (state.isGameOver) {
             return true;
         }
 
@@ -906,8 +915,8 @@ public class GameView extends View {
     private ArrayList<Diff> getDiffsByOrder() {
         ArrayList<Diff> diffs = new ArrayList<>();
 
-        for (int i = 0; i < Options.cols; i++) {
-            for (int j = 0; j < Options.rows; j++) {
+        for (int i = 0; i < options.cols; i++) {
+            for (int j = 0; j < options.rows; j++) {
                 Position position = getPointPoisition(i, j);
                 float diff = computeDiff(touchX, touchY, position.x, position.y);
                 diffs.add(new Diff(new Point(i, j), diff));
@@ -966,7 +975,7 @@ public class GameView extends View {
         }
 
         // if this line is already connected
-        for (Action line : State.actions) {
+        for (Action line : state.actions) {
             if (line.i1 == firstPoint.i && line.j1 == firstPoint.j && line.i2 == secondPoint.i && line.j2 == secondPoint.j) {
                 return false;
             }
@@ -974,9 +983,9 @@ public class GameView extends View {
 
         // add line to list of connected actions
         Action line = new Action(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j, getPlayerIndex());
-        State.actions.add(line);
+        state.actions.add(line);
 
-        if (Options.highGraphic) {
+        if (options.highGraphic) {
             isRenderingLock = true;
             lastLineAlpha = 0;
         }
@@ -1011,7 +1020,7 @@ public class GameView extends View {
 
 
     private void switchSide() {
-        State.isSide1 = !State.isSide1;
+        state.isSide1 = !state.isSide1;
         playNext();
     }
 
@@ -1056,8 +1065,8 @@ public class GameView extends View {
     private ArrayList<Move> detectUnsafeMoves() {
         ArrayList<Move> unsafeMoves = new ArrayList<>();
 
-        for (int i = 0; i <= Options.cols - 2; i++) {
-            for (int j = 0; j <= Options.rows - 2; j++) {
+        for (int i = 0; i <= options.cols - 2; i++) {
+            for (int j = 0; j <= options.rows - 2; j++) {
                 ArrayList<Integer> freeSides = new ArrayList<>();
 
                 if (hasLeft(i, j)) {
@@ -1160,8 +1169,8 @@ public class GameView extends View {
 
 
     private boolean fill3sidesBoxes() {
-        for (int i = 0; i <= Options.cols - 2; i++) {
-            for (int j = 0; j <= Options.rows - 2; j++) {
+        for (int i = 0; i <= options.cols - 2; i++) {
+            for (int j = 0; j <= options.rows - 2; j++) {
                 int sides = 0;
                 int freeSide = -1;
 
@@ -1234,7 +1243,7 @@ public class GameView extends View {
 
 
     private boolean hasLeft(int i, int j) {
-        for (Action line : State.actions) {
+        for (Action line : state.actions) {
             if (line.i1 == i && line.j1 == j && line.i2 == i && line.j2 == j + 1) {
                 return true;
             }
@@ -1245,7 +1254,7 @@ public class GameView extends View {
 
 
     private boolean hasRight(int i, int j) {
-        for (Action line : State.actions) {
+        for (Action line : state.actions) {
             if (line.i1 == i + 1 && line.j1 == j && line.i2 == i + 1 && line.j2 == j + 1) {
                 return true;
             }
@@ -1256,7 +1265,7 @@ public class GameView extends View {
 
 
     private boolean hasTop(int i, int j) {
-        for (Action line : State.actions) {
+        for (Action line : state.actions) {
             if (line.i1 == i && line.j1 == j + 1 && line.i2 == i + 1 && line.j2 == j + 1) {
                 return true;
             }
@@ -1267,7 +1276,7 @@ public class GameView extends View {
 
 
     private boolean hasBottom(int i, int j) {
-        for (Action line : State.actions) {
+        for (Action line : state.actions) {
             if (line.i1 == i && line.j1 == j && line.i2 == i + 1 && line.j2 == j) {
                 return true;
             }
@@ -1294,7 +1303,7 @@ public class GameView extends View {
         boolean isFullConnected = hasLeft && hasRight && hasTop && hasBottom;
         if (isFullConnected) {
             box.playerIndex = getPlayerIndex();
-            State.actions.get(State.actions.size() - 1).boxes.add(box);
+            state.actions.get(state.actions.size() - 1).boxes.add(box);
 
             increasePlayerScore(box.playerIndex);
             return true;
