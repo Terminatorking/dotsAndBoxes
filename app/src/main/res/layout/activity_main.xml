@@ -1,53 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:gravity="center_vertical"
-              android:orientation="vertical">
-
-  <LinearLayout
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical"
     android:orientation="vertical"
-    android:padding="48dip">
+    tools:ignore="all">
 
     <Button
-      android:id="@+id/btn_resume"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_marginBottom="20dip"
-      android:layout_weight="1"
-      android:text="Resume Last Game"/>
+        android:id="@+id/btn_resume"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dip"
+        android:text="Resume Last Game" />
 
     <Button
-      android:id="@+id/btn_singlePlayer"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_weight="1"
-      android:text="Single Player"/>
+        android:id="@+id/btn_singlePlayer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Single Player" />
 
     <Button
-      android:id="@+id/btn_multiPlayer"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_weight="1"
-      android:text="Multi Player"/>
+        android:id="@+id/btn_multiPlayer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Multi Player" />
 
     <Button
-      android:id="@+id/btn_options"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_weight="1"
-      android:text="Options"/>
+        android:id="@+id/btn_options"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Options" />
 
     <Button
-      android:id="@+id/btn_about"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="48dip"
-      android:layout_weight="1"
-      android:text="About"/>
-
-  </LinearLayout>
-
+        android:id="@+id/btn_about"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="48dip"
+        android:text="About" />
 </LinearLayout>

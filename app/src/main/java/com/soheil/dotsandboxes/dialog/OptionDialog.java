@@ -2,7 +2,6 @@ package com.soheil.dotsandboxes.dialog;
 
 import android.app.Dialog;
 import android.os.Bundle;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -12,10 +11,12 @@ import com.soheil.dotsandboxes.R;
 import com.soheil.dotsandboxes.activities.GameActivity;
 import com.soheil.dotsandboxes.classes.Settings;
 
+import java.util.Objects;
+
 
 public class OptionDialog extends Dialog {
 
-  private GameActivity activity;
+  private final GameActivity activity;
 
   public OptionDialog(GameActivity activity) {
     super(activity);
@@ -28,27 +29,24 @@ public class OptionDialog extends Dialog {
     requestWindowFeature(Window.FEATURE_NO_TITLE);
     setContentView(R.layout.dialog_option);
 
-    getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+    Objects.requireNonNull(getWindow()).setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
 
-    Button btn_ok = (Button) findViewById(R.id.btn_ok);
-    final EditText edt_cols = (EditText) findViewById(R.id.edt_cols);
-    final EditText edt_rows = (EditText) findViewById(R.id.edt_rows);
+    Button btn_ok = findViewById(R.id.btn_ok);
+    final EditText edt_cols = findViewById(R.id.edt_cols);
+    final EditText edt_rows =  findViewById(R.id.edt_rows);
 
-    edt_cols.setText("" + Settings.getCols());
-    edt_rows.setText("" + Settings.getRows());
+    edt_cols.setText(String.valueOf(Settings.getCols()));
+    edt_rows.setText(String.valueOf(Settings.getRows()));
 
-    btn_ok.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        int cols = Integer.parseInt(edt_cols.getText().toString());
-        int rows = Integer.parseInt(edt_rows.getText().toString());
+    btn_ok.setOnClickListener(view -> {
+      int cols = Integer.parseInt(edt_cols.getText().toString());
+      int rows = Integer.parseInt(edt_rows.getText().toString());
 
-        Settings.setRows(rows);
-        Settings.setCols(cols);
+      Settings.setRows(rows);
+      Settings.setCols(cols);
 
-        activity.getGameView().resetGame();
-        dismiss();
-      }
+      activity.getGameView().resetGame();
+      dismiss();
     });
   }
 }

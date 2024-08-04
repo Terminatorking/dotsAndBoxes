@@ -26,15 +26,12 @@ public class EnhancedActivity extends AppCompatActivity {
       return;
     }
 
-    G.handler.postDelayed(new Runnable() {
-      @Override
-      public void run() {
-        if (currentActivities.size() == 0) {
-          G.musicPlayer.pause();
-        } else {
-          if (!G.musicPlayer.isPlaying()) {
-            G.musicPlayer.start();
-          }
+    G.handler.postDelayed(() -> {
+      if (currentActivities.isEmpty()) {
+        G.musicPlayer.pause();
+      } else {
+        if (!G.musicPlayer.isPlaying()) {
+          G.musicPlayer.start();
         }
       }
     }, 100);
