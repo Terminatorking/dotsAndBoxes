@@ -9,15 +9,13 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
-import androidx.annotation.Nullable;
-
 import com.soheil.dotsandboxes.R;
 import com.soheil.dotsandboxes.classes.G;
 
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,6 +31,8 @@ public class GameView extends View {
 
     private Paint paintBox;
     private Paint paintDot;
+    private Paint scoreBorderPaint;
+    private Paint scoreEffectPaint;
     private Paint paintTouch;
     private Paint paintText;
     private Paint paintLine;
@@ -57,6 +57,7 @@ public class GameView extends View {
 
     private static ArrayList<Move> availableMoves = new ArrayList<>();
 
+    private static float[] playerIndexEffectRadius = new float[] {50, 25};
 
     private static class Theme {
         private static int[] playerColors = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
@@ -86,6 +87,8 @@ public class GameView extends View {
         private static String[] playerNames = new String[]{"Player 1", "Player 2"};
         private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
         //private static int[] playerTypes = new int[]{TYPE_PLAYER, TYPE_PLAYER};
+
+        private static boolean highGraphic = true;
     }
 
 
@@ -196,6 +199,10 @@ public class GameView extends View {
             return;
         }
 
+        if (Options.highGraphic) {
+            mainLoop();
+        }
+
         initializePaints();
         initializeMetrics();
     }
@@ -206,6 +213,18 @@ public class GameView extends View {
         paintDot.setColor(Color.WHITE);
         paintDot.setStyle(Paint.Style.FILL);
         paintDot.setAntiAlias(true);
+
+        scoreBorderPaint = new Paint();
+        scoreBorderPaint.setColor(Color.WHITE);
+        scoreBorderPaint.setStyle(Paint.Style.STROKE);
+        scoreBorderPaint.setStrokeWidth(10);
+        scoreBorderPaint.setAntiAlias(true);
+
+        scoreEffectPaint = new Paint();
+        scoreEffectPaint.setColor(Color.WHITE);
+        scoreEffectPaint.setStyle(Paint.Style.STROKE);
+        scoreEffectPaint.setStrokeWidth(4);
+        scoreEffectPaint.setAntiAlias(true);
 
         paintBox = new Paint();
         paintBox.setColor(Color.WHITE);
@@ -265,6 +284,55 @@ public class GameView extends View {
         }
 
         refresh();
+    }
+
+
+    private void mainLoop() {
+        Thread main = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                long physicLastTime = System.currentTimeMillis();
+                long renderLastTime = System.currentTimeMillis();
+
+                while (true) {
+                    long physicElapsedTime = System.currentTimeMillis() - physicLastTime;
+                    if (physicElapsedTime > 20) {
+                        updatePhysic(physicElapsedTime);
+                        physicLastTime = System.currentTimeMillis();
+                    }
+
+
+                    long renderElapsedTime = System.currentTimeMillis() - renderLastTime;
+                    if (renderElapsedTime > 15) {
+                        renderGame();
+                        renderLastTime = System.currentTimeMillis();
+                    }
+
+                    try {
+                        Thread.sleep(5);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        main.start();
+    }
+
+
+    private void updatePhysic(long elapsedTime) {
+        for (int i=0; i<playerIndexEffectRadius.length; i++) {
+            playerIndexEffectRadius[i] += elapsedTime * 0.08f;
+            if (playerIndexEffectRadius[i] > 90) {
+                playerIndexEffectRadius[i] = 50;
+            }
+        }
+    }
+
+
+    private void renderGame() {
+        postInvalidate();
     }
 
 
@@ -393,7 +461,7 @@ public class GameView extends View {
             Options.cols = options.getInt("cols");
             Options.rows = options.getInt("rows");
             int opponentType = options.getInt("opponentType");
-            Options.playerTypes[1] = opponentType;
+            //Options.playerTypes[1] = opponentType;
 
             resetGame();
 
@@ -509,6 +577,15 @@ public class GameView extends View {
     }
 
 
+    private void drawPlayerIndexEffect(Canvas canvas, int x, int y) {
+        for (int i=0; i<playerIndexEffectRadius.length; i++) {
+            float alpha = 2.5f * (100 - playerIndexEffectRadius[i] - 10);
+            scoreEffectPaint.setAlpha((int) alpha);
+            canvas.drawCircle(x, y, playerIndexEffectRadius[i], scoreEffectPaint);
+        }
+    }
+
+
     private void drawLine(Canvas canvas, Action line) {
         Position p1 = getPointPoisition(line.i1, line.j1);
         Position p2 = getPointPoisition(line.i2, line.j2);
@@ -537,19 +614,22 @@ public class GameView extends View {
 
 
     private void drawPlayerScore(Canvas canvas, int playerIndex, int x, int y) {
-        if (playerIndex == getPlayerIndex()) {
-            paintBox.setColor(Color.WHITE);
-            canvas.drawCircle(x, y, 50, paintBox);
-        } else {
-            paintBox.setColor(Color.parseColor("#444444"));
-            canvas.drawCircle(x, y, 50, paintBox);
-        }
-
         paintBox.setColor(getPlayerColor(playerIndex));
-        canvas.drawCircle(x, y, 40, paintBox);
+        canvas.drawCircle(x, y, 50, paintBox);
         canvas.drawText("" + getPlayerScore(playerIndex), x, y + 10, paintText);
-        canvas.drawText(getPlayerName(playerIndex), x, y + 80, paintText);
+        canvas.drawText(getPlayerName(playerIndex), x, y + 100, paintText);
 
+        if (playerIndex == getPlayerIndex()) {
+            if (Options.highGraphic) {
+                drawPlayerIndexEffect(canvas, x, y);
+            } else {
+                scoreBorderPaint.setColor(Color.WHITE);
+                canvas.drawCircle(x, y, 60, scoreBorderPaint);
+            }
+        } else {
+            scoreBorderPaint.setColor(Color.parseColor("#444444"));
+            canvas.drawCircle(x, y, 60, scoreBorderPaint);
+        }
     }
 
 
@@ -589,7 +669,7 @@ public class GameView extends View {
 
 
     private String getGameFinishMessage() {
-        String message = "";
+        String message;
         if (getPlayerScore(1) == getPlayerScore(2)) {
             message = G.context.getString(R.string.gameDraw);
         } else if (getPlayerScore(1) > getPlayerScore(2)) {
