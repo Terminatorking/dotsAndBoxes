@@ -40,4 +40,9 @@ public class Settings {
   public static void setRows(int value) {
     getSharedPreferenceEditor().putInt("gridRows", value).apply();
   }
+
+  public static float getMusicVolume() {
+    int value = getSharedPreference().getInt("music_volume", 80);
+    return value / 100.0f;
+  }
 }

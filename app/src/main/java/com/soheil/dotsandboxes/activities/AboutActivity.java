@@ -2,12 +2,11 @@ package com.soheil.dotsandboxes.activities;
 
 import android.os.Bundle;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import com.soheil.dotsandboxes.R;
+import com.soheil.dotsandboxes.classes.EnhancedActivity;
 
 
-public class AboutActivity extends AppCompatActivity {
+public class AboutActivity extends EnhancedActivity {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {

@@ -1,5 +1,7 @@
 package com.soheil.dotsandboxes.views;
 
+import static com.soheil.dotsandboxes.classes.G.context;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,19 +10,12 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.media.MediaPlayer;
 
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import static com.soheil.dotsandboxes.classes.G.context;
 
 import androidx.annotation.Nullable;
 
@@ -30,6 +25,13 @@ import com.soheil.dotsandboxes.classes.Settings;
 import com.soheil.dotsandboxes.helper.FileHelper;
 import com.soheil.dotsandboxes.helper.MathHelper;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class GameView extends View {
   private static final int EDGE_LEFT = 0;
@@ -72,6 +74,9 @@ public class GameView extends View {
   private State state = new State();
   private Options options = new Options();
 
+  private float physicTotalTime = 0;
+
+  private ArrayList<MediaPlayer> pencilPlayer = new ArrayList<>();
 
   private static class Theme {
     private static final int[] PLAYER_COLORS = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
@@ -207,12 +212,21 @@ public class GameView extends View {
       return;
     }
 
+    initializeSounds();
+
     if (!options.highPerformance) {
       initializeBitmaps();
       mainLoop();
     }
 
     initializePaints();
+  }
+
+
+  private void initializeSounds() {
+    pencilPlayer.add(MediaPlayer.create(context, R.raw.pencil_1));
+    pencilPlayer.add(MediaPlayer.create(context, R.raw.pencil_2));
+    pencilPlayer.add(MediaPlayer.create(context, R.raw.pencil_3));
   }
 
 
@@ -320,6 +334,7 @@ public class GameView extends View {
         while (true) {
           long physicElapsedTime = System.currentTimeMillis() - physicLastTime;
           if (physicElapsedTime > 30) {
+            physicTotalTime += physicElapsedTime;
             updatePhysic(physicElapsedTime);
             physicLastTime = System.currentTimeMillis();
           }
@@ -346,10 +361,7 @@ public class GameView extends View {
 
   private void updateHepticRadius(long elapsedTime) {
     for (int i = 0; i < hepticRadius.length; i++) {
-      hepticRadius[i] += elapsedTime * 0.08f;
-      if (hepticRadius[i] > 90) {
-        hepticRadius[i] = 50;
-      }
+      hepticRadius[i] = ((physicTotalTime / 15f + i * 20) % 40) + 50;
     }
   }
 
@@ -940,6 +952,19 @@ public class GameView extends View {
     Action action = new Action(new Move(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j), state.playerIndex);
     state.actions.add(action);
 
+    if (Settings.isEnableSfx()) {
+      if (options.highPerformance) {
+        playRandomPencilSfx();
+      } else {
+        G.handler.postDelayed(new Runnable() {
+          @Override
+          public void run() {
+            playRandomPencilSfx();
+          }
+        }, 300);
+      }
+    }
+
     if (!options.highPerformance) {
       isLockedForRendering = true;
       drawingAlpha = 0;
@@ -974,6 +999,12 @@ public class GameView extends View {
   }
 
 
+  private void playRandomPencilSfx() {
+    int soundIndex = MathHelper.getRandom(0, 2);
+    pencilPlayer.get(soundIndex).start();
+  }
+
+
   private void switchSide() {
     if (state.playerIndex == 1) {
       state.playerIndex = 2;
@@ -986,6 +1017,13 @@ public class GameView extends View {
 
 
   private void playNext() {
+    int delayTime = 0;
+    if (Settings.isEnableHighPerformance()) {
+      delayTime = 100;
+    } else {
+      delayTime = 1000;
+    }
+
     if (isCpuTurn()) {
       G.handler.postDelayed(new Runnable() {
         @Override
@@ -993,7 +1031,7 @@ public class GameView extends View {
           ai();
           refresh();
         }
-      }, 600);
+      }, delayTime);
     }
   }
 

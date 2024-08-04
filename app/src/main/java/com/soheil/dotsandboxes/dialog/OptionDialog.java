@@ -12,6 +12,7 @@ import com.soheil.dotsandboxes.R;
 import com.soheil.dotsandboxes.activities.GameActivity;
 import com.soheil.dotsandboxes.classes.Settings;
 
+
 public class OptionDialog extends Dialog {
 
   private GameActivity activity;

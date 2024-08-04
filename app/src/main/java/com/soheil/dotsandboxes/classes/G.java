@@ -1,14 +1,18 @@
 package com.soheil.dotsandboxes.classes;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.res.Resources;
+import android.media.MediaPlayer;
 import android.os.Environment;
 import android.os.Handler;
 import android.util.DisplayMetrics;
-import android.util.Log;
+
+import com.soheil.dotsandboxes.R;
 
 import java.io.File;
+import java.util.ArrayList;
 
 public class G extends Application {
   public static final String SDCARD = Environment.getExternalStorageDirectory().getAbsolutePath();
@@ -20,6 +24,9 @@ public class G extends Application {
   public static DisplayMetrics displayMetrics;
   public static Handler handler;
   public static boolean hasWriteAccess;
+  public static ArrayList<Activity> currentActivities = new ArrayList<>();
+
+  public static MediaPlayer musicPlayer;
 
   @Override
   public void onCreate() {
@@ -30,7 +37,9 @@ public class G extends Application {
     displayMetrics = resources.getDisplayMetrics();
     handler = new Handler();
 
-    Log.i("LOG", "onCreate From G");
+    musicPlayer = MediaPlayer.create(context, R.raw.music);
+    float volume = Settings.getMusicVolume();
+    musicPlayer.setVolume(volume, volume);
   }
 
   public static void createDirectory() {
@@ -39,6 +48,4 @@ public class G extends Application {
       file.mkdirs();
     }
   }
-
-
 }
